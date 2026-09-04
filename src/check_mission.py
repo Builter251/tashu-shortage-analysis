@@ -68,7 +68,7 @@ ITEMS = [
     # ── 미션 필수는 아니지만 갖춘 것 (분모에는 포함하되 '추가'로 표시) ──
     ("추가", "Jupyter 노트북(흐름 재현)", os.path.exists("notebooks/analysis.ipynb"), "25셀 · 실행 출력 포함"),
     ("추가", "동료평가 대응표", os.path.exists("RUBRIC.md"), "평가 항목별 근거·답변"),
-    ("추가", "리포트 수치 자동 검증", os.path.exists("src/verify_report.py"), "32건 대조"),
+    ("추가", "리포트 수치 자동 검증", os.path.exists("src/verify_report.py"), "42건 대조"),
 ]
 
 w = max(len(n) for _, n, _, _ in ITEMS)
