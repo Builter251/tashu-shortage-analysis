@@ -61,6 +61,14 @@ chk("순유입 1위 일평균", 2.19, -top_in.net_out_per_day, 0.005)
 chk("순유입 1위 누적", 1253, -top_in.net_out)
 chk("순유출 2위 일평균", 2.22, met.nlargest(2, "net_out_per_day").net_out_per_day.iloc[1], 0.005)
 chk("목동 재배치 순유입", 1160, met.loc[met.net_out_per_day.idxmax(), "reloc_net_in"])
+# 인코딩 개수도 고정한다. 노트북에서 재계산했을 때 리포트(8/12)와 어긋났다.
+chk("cp949 파일 수", 9, (ing.encoding == "cp949").sum())
+chk("utf-8-sig 파일 수", 11, (ing.encoding == "utf-8-sig").sum())
+# 반례(07_robustness.py) 수치
+rb = pd.read_csv(P / "robustness.csv")
+chk("성수기 순위상관", 0.806, rb.loc[0, "순위상관"], 0.002)
+chk("비수기 순위상관", 0.712, rb.loc[1, "순위상관"], 0.002)
+chk("비수기 부호뒤집힘%", 24.9, rb.loc[1, "뒤집힘 비율%"], 0.1)
 
 print("=" * 76)
 print(f"{'':2} {'항목':<28}{'리포트':>14}{'재계산':>14}")

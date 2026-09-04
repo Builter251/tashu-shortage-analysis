@@ -9,6 +9,8 @@
 - 적재 단계 데이터 품질 진단: [`reports/01_ingest_findings.md`](reports/01_ingest_findings.md)
 - **최종 리포트: [`REPORT.md`](REPORT.md)** ★
 - **용어집: [`GLOSSARY.md`](GLOSSARY.md)** — 이 프로젝트의 분석 내용을 예시로 삼은 데이터·통계 용어 56개
+- **동료평가 대응표: [`RUBRIC.md`](RUBRIC.md)** — 평가 항목별 근거 위치와 답변
+- 단계별 흐름 노트북: [`notebooks/analysis.ipynb`](notebooks/analysis.ipynb) — 로딩→정제→분석→시각화 재현
 - 단계별 상세 기록: [`reports/`](reports/)
 - 대시보드: [`dashboard.html`](dashboard.html) (로컬 실행) / [배포 URL](https://builter251.github.io/tashu-shortage-analysis/)
 - 실시간 수집 모듈(독립): [`realtime/`](realtime/) — API 키 없이도 코드 경로 점검 가능
@@ -36,6 +38,7 @@ python3 src/02_build_panel.py   # 중복 제거 · 재배치 탐지 · 대여소
 python3 src/verify_02.py        # 재배치 로직 교차 검증 (pandas 독립 재구현 대조)
 python3 src/03_analyze.py       # 지표 계산 및 그림 01~07
 python3 src/04_forecast.py      # 재고 소진 진단 · 예측 백테스트 · 그림 08~10
+python3 src/07_robustness.py    # 반례·민감도 분석 · 그림 11
 python3 src/verify_report.py    # REPORT.md 인용 수치 23건 자동 재검증
 python3 src/06_export_dashboard.py && python3 src/build_dashboard.py   # 대시보드 재생성
 
