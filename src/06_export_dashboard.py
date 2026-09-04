@@ -51,15 +51,18 @@ months = sorted(sm.ym.unique())
 mi = {m_: i for i, m_ in enumerate(months)}
 days_per_month = pd.Series(obs_days).dt.strftime("%Y-%m").value_counts().to_dict()
 
-# ── 평일 시간대 프로파일 ──────────────────────────────────────────────────
+# ── 요일 × 시간대 프로파일 ────────────────────────────────────────────────
+# 평일 24시간만 뽑던 것을 요일×시간(7×24)으로 확장한다.
+# 이 하나로 (1) 전체·대여소별 평일/주말 프로파일 (2) 시간대×요일 히트맵을 모두 만들 수 있다.
 pf = con.execute(f"""
-    SELECT h.station_id AS sid, hour(h.ts) AS hh,
+    SELECT h.station_id AS sid, (dayofweek(h.ts) + 6) % 7 AS dw, hour(h.ts) AS hh,
            sum(h.rentals_real) AS r, sum(h."returns_real") AS b
     FROM h JOIN m ON h.station_id=m.station_id
-    WHERE m.station_type='ACTIVE' AND dayofweek(h.ts) BETWEEN 1 AND 5
-      AND h.ts::DATE IN (SELECT unnest(?))
-    GROUP BY 1,2""", [[d.date() for d in obs_days]]).df()
-n_wd = int((pd.Series(obs_days).dt.dayofweek <= 4).sum())
+    WHERE m.station_type='ACTIVE' AND h.ts::DATE IN (SELECT unnest(?))
+    GROUP BY 1,2,3""", [[d.date() for d in obs_days]]).df()
+dow_obs = pd.Series(obs_days).dt.dayofweek
+days_per_dow = [int((dow_obs == i).sum()) for i in range(7)]   # 0=월
+n_wd = sum(days_per_dow[:5])
 
 stations, monthly, profile = [], {}, {}
 for _, r in met.iterrows():
@@ -77,14 +80,18 @@ for _, r in met.iterrows():
     for _, x in g.iterrows():
         ra[mi[x.ym]] = int(x.r); ba[mi[x.ym]] = int(x.b)
     monthly[sid] = [ra, ba]
-    p = pf[pf.sid == sid].set_index("hh").reindex(range(24)).fillna(0)
-    profile[sid] = [[round(v / n_wd, 3) for v in p.r], [round(v / n_wd, 3) for v in p.b]]
+    # 요일×시간 원자료(합계)를 정수로 저장한다. 평균은 화면에서 관측일수로 나눈다.
+    g2 = pf[pf.sid == sid]
+    rr = [0] * 168; bb = [0] * 168
+    for _, x in g2.iterrows():
+        k = int(x.dw) * 24 + int(x.hh); rr[k] = int(x.r); bb[k] = int(x.b)
+    profile[sid] = [rr, bb]
 
 data = {
     "meta": {
         "period": [str(idx.min().date()), str(idx.max().date())],
         "obsDays": len(obs_days), "missingDays": int(s.isna().sum()),
-        "weekdayDays": n_wd, "totalTrips": 9_116_471,
+        "weekdayDays": n_wd, "daysPerDow": days_per_dow, "totalTrips": 9_116_471,
         "generated": pd.Timestamp.now().strftime("%Y-%m-%d"),
     },
     "months": months,

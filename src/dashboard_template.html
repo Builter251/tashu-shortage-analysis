@@ -38,7 +38,8 @@ button.ghost{border:1px solid var(--base);background:transparent;color:var(--ink
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:10px;margin-bottom:14px}
 .kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 15px}
 .kpi .k{font-size:11.5px;color:var(--muted)}
-.kpi .v{font-size:23px;font-weight:640;letter-spacing:-.02em;margin-top:3px}
+.kpi .v{font-size:23px;font-weight:640;letter-spacing:-.02em;margin-top:3px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kpi .n{font-size:11.5px;color:var(--ink2);margin-top:2px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:900px){.grid2{grid-template-columns:1fr}}
@@ -75,7 +76,37 @@ tbody tr[aria-selected="true"]{background:var(--chip);box-shadow:inset 2px 0 0 v
   filter:brightness(.62) contrast(1.06) saturate(.65)}}
 :root[data-theme="dark"] .mapwrap .tiles img{filter:brightness(.62) contrast(1.06) saturate(.65)}
 .pos{color:var(--pos)} .neg{color:var(--neg)}
-.help{font-size:11px;color:var(--s1);text-decoration:none;border-bottom:1px dotted var(--s1)}
+.help{font-size:11px;color:var(--s1);text-decoration:none;border-bottom:1px dotted var(--s1);cursor:pointer}
+.hint{font-size:11px;color:var(--muted);min-height:14px}
+.combo{position:relative}
+.combo input{width:250px}
+.ac{position:absolute;top:100%;left:0;z-index:20;margin:4px 0 0;padding:4px;list-style:none;
+  background:var(--surface);border:1px solid var(--border);border-radius:9px;width:340px;
+  max-height:290px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.16)}
+.ac li{padding:7px 9px;border-radius:6px;cursor:pointer;font-size:12.5px;display:flex;
+  justify-content:space-between;gap:10px;align-items:baseline}
+.ac li[aria-selected="true"],.ac li:hover{background:var(--chip)}
+.ac li .nm{font-weight:600}
+.ac li .meta{color:var(--muted);font-size:11.5px;white-space:nowrap}
+.ac li.act{border-top:1px solid var(--grid);margin-top:3px;padding-top:9px;color:var(--s1);font-weight:600}
+.ac .none{padding:10px;color:var(--muted);font-size:12.5px}
+.tagbar{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:10px;font-size:12.5px}
+.tag{background:var(--chip);border-radius:999px;padding:4px 6px 4px 11px;display:inline-flex;
+  gap:7px;align-items:center;color:var(--ink2)}
+.tag button{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:14px;
+  line-height:1;padding:0 4px}
+.selbar{display:flex;flex-wrap:wrap;gap:0 20px;align-items:baseline;background:var(--chip);
+  border-radius:10px;padding:11px 14px;margin-bottom:13px}
+.selbar .who{font-size:15px;font-weight:650}
+.selbar .sid{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--muted);margin-left:7px}
+.selbar dl{display:flex;gap:16px;margin:0;flex-wrap:wrap}
+.selbar dt{font-size:11px;color:var(--muted)}
+.selbar dd{margin:0;font-size:13px;font-weight:600}
+.selbar .clear{margin-left:auto}
+.cardhead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.cardhead .mut{font-weight:400;font-size:12.5px;color:var(--ink2)}
+.selhint{background:var(--chip);border-radius:10px;padding:10px 14px;margin-bottom:13px;
+  font-size:12.5px;color:var(--ink2)}
 .expl{padding:0}
 .expl summary{cursor:pointer;padding:13px 18px;font-size:13.5px;font-weight:600;list-style:none}
 .expl summary::-webkit-details-marker{display:none}
@@ -106,12 +137,34 @@ tbody tr[aria-selected="true"]{background:var(--chip);box-shadow:inset 2px 0 0 v
       <div class="fgroup"><span class="flabel">자치구</span><div class="chips" id="guChips"></div></div>
       <div class="fgroup"><span class="flabel">이용 유형 <a href="#typeHelp" class="help"
         title="분류 기준 보기">기준?</a></span><div class="chips" id="typeChips"></div></div>
-      <div class="fgroup"><span class="flabel">기간 내 최소 대여 <b id="minLabel">0</b>건</span>
-        <input type="range" id="minRent" min="0" max="20000" step="500" value="0" style="width:160px"></div>
-      <div class="fgroup"><span class="flabel">대여소 검색</span><input type="search" id="q" placeholder="이름 / ID"></div>
+      <div class="fgroup"><span class="flabel">최소 이용량 <a href="#minHelp" class="help" id="minHelpLink">왜?</a>
+        — <b id="minLabel">제한 없음</b></span>
+        <input type="range" id="minRent" min="0" max="30" step="1" value="0" style="width:170px"
+          aria-describedby="minHelp"><span class="hint" id="minExcl">&nbsp;</span></div>
+      <div class="fgroup combo"><span class="flabel">대여소 찾기</span>
+        <input type="search" id="q" autocomplete="off" role="combobox" aria-expanded="false"
+          aria-controls="acList" placeholder="이름·ID·동 입력 (예: 한사랑, ST0051, 둔산동)">
+        <ul class="ac" id="acList" role="listbox" hidden></ul></div>
       <div class="fgroup"><span class="flabel">&nbsp;</span><button class="ghost" id="reset">필터 초기화</button></div>
     </div>
   </div>
+
+  <details class="card expl" id="minHelp">
+    <summary>최소 이용량 슬라이더는 무엇을 하나 <span class="mut">— 표본이 적은 대여소를 걸러냅니다</span></summary>
+    <div class="expl-body">
+      <p style="margin:0 0 8px">이 슬라이더는 <b>선택한 기간 동안 대여가 일정 건수 미만인 대여소를 화면에서 빼는</b> 장치입니다.
+        기준은 <b>월평균 대여 건수</b>로 지정합니다(기간 길이가 달라져도 같은 뜻이 되도록).</p>
+      <p style="margin:0 0 8px"><b>왜 필요한가.</b> 이 대시보드의 핵심 지표인 <b>일평균 순유출</b>은
+        <span class="mono">(대여 − 반납) ÷ 관측일수</span> 입니다. 분자가 작은 대여소는 우연 몇 건만으로도
+        값이 크게 흔들립니다. 예를 들어 19개월 동안 대여가 200건뿐인 대여소에서 순유출이 30대만 생겨도
+        일평균 0.05대가 되는데, 이건 <b>수요의 비대칭이 아니라 표본이 적어서 생긴 잡음</b>일 수 있습니다.
+        기준을 올리면 랭킹·지도·표에서 그런 대여소가 빠져 <b>신호만 남습니다</b>.</p>
+      <p style="margin:0"><b>권장 사용법.</b> 0(제한 없음)으로 전체를 훑어본 뒤,
+        30~100건 정도로 올려 가며 <b>상위 랭킹이 바뀌는지</b> 보세요. 기준을 올려도 남아 있는 대여소가
+        진짜 구조적으로 새는 곳입니다. (리포트에서는 유형 분류에 월 30건, 재고 소진 분석에 월 100건을
+        같은 이유로 하한으로 썼습니다.)</p>
+    </div>
+  </details>
 
   <details class="card expl" id="typeHelp">
     <summary>이용 유형은 어떻게 나눴나 <span class="mut">— 인상이 아니라 계산 가능한 두 지표로 정의했습니다</span></summary>
@@ -144,6 +197,7 @@ tbody tr[aria-selected="true"]{background:var(--chip);box-shadow:inset 2px 0 0 v
     </div>
   </details>
 
+  <div class="tagbar" id="tagbar"></div>
   <div class="kpis" id="kpis"></div>
 
   <div class="card">
@@ -182,9 +236,21 @@ tbody tr[aria-selected="true"]{background:var(--chip);box-shadow:inset 2px 0 0 v
   </div>
 
   <div class="card">
-    <h2 id="pfTitle">선택 대여소의 평일 시간대 프로파일</h2>
-    <p class="cap">평일 하루 평균. 대여선이 반납선보다 위면 그 시간은 <b>순유출</b>, 아래면 <b>순유입</b>입니다.
-      아래 누적선이 0 밑으로 내려간 구간이 재고가 줄어드는 시간대입니다. <span style="color:var(--muted)">(전체 기간 평균 기준)</span></p>
+    <div class="cardhead">
+      <div><h2>시간대 × 요일 이용 패턴 <span class="mut" id="heatWho"></span></h2>
+        <p class="cap">한 칸은 그 요일·그 시간의 <b>시간당 평균 대여 건수</b>입니다.
+          평일 아침 8시와 저녁 18시의 이중 피크, 주말의 오후 한 덩어리가 보입니다.</p></div>
+    </div>
+    <svg id="cHeat" height="212" role="img" aria-label="시간대 요일 히트맵"></svg>
+  </div>
+
+  <div class="card">
+    <div class="cardhead">
+      <div><h2 id="pfTitle">시간대 프로파일</h2></div>
+      <div class="chips" id="dayChips"></div>
+    </div>
+    <p class="cap" id="pfCap"></p>
+    <div class="selbar" id="selBar"></div>
     <div class="grid2">
       <svg id="cProf" height="230" role="img" aria-label="시간대별 대여·반납"></svg>
       <svg id="cCum" height="230" role="img" aria-label="시간대별 누적 재고 변화"></svg>
@@ -253,7 +319,12 @@ const el = (t, a = {}) => { const e = document.createElementNS(NS, t);
 const GUS = [...new Set(D.stations.map(s => s.g))].sort();
 const TYPES = ["출퇴근형", "여가형", "혼합/생활형", "판정 불가"];
 const state = { from: 0, to: D.months.length - 1, gu: new Set(GUS), type: new Set(TYPES),
-                minRent: 0, q: "", sel: null, sortK: "npd", sortAsc: false };
+                minRent: 0,          // 월평균 대여 하한 (표본이 적은 대여소 제외)
+                textFilter: "",      // 검색어로 '목록을 좁힌' 경우에만 채워진다
+                sel: null, dayMode: "평일", sortK: "npd", sortAsc: false };
+/* 검색창은 두 가지 일을 한다 — 헷갈리지 않도록 분리했다.
+   · 목록에서 하나를 골라 클릭 → 그 대여소를 '선택'(프로파일 표시). 화면 전체는 그대로.
+   · 목록 맨 아래 '…포함 N개만 보기' → 그때만 '필터'로 동작. 태그로 표시되고 ✕ 로 해제. */
 
 /* ── 메타 ─────────────────────────────────────────── */
 $("#mTrips").textContent = fmt(D.meta.totalTrips);
@@ -279,19 +350,33 @@ const mkChips = (host, items, set) => {
     host.appendChild(b); });
 };
 mkChips($("#guChips"), GUS, state.gu);
+// 평일/주말 전환 — 단일 선택
+const DAYS = ["평일", "주말", "전체"];
+$("#dayChips").innerHTML = DAYS.map(d =>
+  `<button class="chip" data-d="${d}" aria-pressed="${d === "평일"}">${d}</button>`).join("");
+$("#dayChips").onclick = e => { const b = e.target.closest("button"); if (!b) return;
+  state.dayMode = b.dataset.d;
+  [...$("#dayChips").children].forEach(c => c.setAttribute("aria-pressed", c === b));
+  render(); };
 mkChips($("#typeChips"), TYPES, state.type);
 $("#mFrom").onchange = e => { state.from = +e.target.value;
   if (state.from > state.to) { state.to = state.from; $("#mTo").value = state.to; } render(); };
 $("#mTo").onchange = e => { state.to = +e.target.value;
   if (state.to < state.from) { state.from = state.to; $("#mFrom").value = state.from; } render(); };
-$("#minRent").oninput = e => { state.minRent = +e.target.value;
-  $("#minLabel").textContent = fmt(state.minRent); render(); };
-$("#q").oninput = e => { state.q = e.target.value.trim().toLowerCase(); render(); };
+// 0 → 5 → 10 … 처럼 균등하게 두면 쓸모 있는 구간(0~200건)이 슬라이더 앞쪽에 몰린다.
+// 눈금 0~30 을 월평균 0/10/20/…/500건 으로 비선형 매핑한다.
+const MIN_STEPS = [0, 5, 10, 15, 20, 30, 40, 50, 60, 80, 100, 120, 150, 180, 200, 250,
+                   300, 350, 400, 450, 500, 600, 700, 800, 900, 1000, 1200, 1500, 2000, 3000, 5000];
+$("#minRent").oninput = e => { state.minRent = MIN_STEPS[+e.target.value];
+  $("#minLabel").textContent = state.minRent === 0 ? "제한 없음" : `월평균 ${fmt(state.minRent)}건 이상`;
+  render(); };
+$("#minHelpLink").onclick = e => { e.preventDefault(); const d = $("#minHelp");
+  d.open = true; d.scrollIntoView({ behavior: "smooth", block: "nearest" }); };
 $("#reset").onclick = () => { state.from = 0; state.to = D.months.length - 1;
   GUS.forEach(g => state.gu.add(g)); TYPES.forEach(t => state.type.add(t));
-  state.minRent = 0; state.q = ""; state.sel = null;
+  state.minRent = 0; state.textFilter = ""; state.sel = null;
   $("#mFrom").value = 0; $("#mTo").value = D.months.length - 1;
-  $("#minRent").value = 0; $("#minLabel").textContent = "0"; $("#q").value = "";
+  $("#minRent").value = 0; $("#minLabel").textContent = "제한 없음"; $("#q").value = ""; acClose();
   document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", "true")); render(); };
 
 /* ── 툴팁 ─────────────────────────────────────────── */
@@ -305,6 +390,9 @@ const showTip = (e, html) => { tip.innerHTML = html; tip.style.opacity = 1;
 const hideTip = () => tip.style.opacity = 0;
 
 /* ── 필터 적용 ────────────────────────────────────── */
+const matchText = (s, q) => s.n.toLowerCase().includes(q) || s.id.toLowerCase().includes(q)
+  || (s.d || "").toLowerCase().includes(q) || (s.g || "").toLowerCase().includes(q);
+
 function daysInRange() { let d = 0;
   for (let i = state.from; i <= state.to; i++) d += D.daysPerMonth[i]; return d || 1; }
 
@@ -315,8 +403,9 @@ function filtered() {
     let r = 0, b = 0;
     for (let i = state.from; i <= state.to; i++) { r += ra[i] || 0; b += ba[i] || 0; }
     return { ...s, r, b, no: r - b, npd: (r - b) / days, rn: s.ri - s.ro };
-  }).filter(s => state.gu.has(s.g) && state.type.has(s.t) && s.r >= state.minRent &&
-    (!state.q || s.n.toLowerCase().includes(state.q) || s.id.toLowerCase().includes(state.q)));
+  }).filter(s => state.gu.has(s.g) && state.type.has(s.t) &&
+    (state.minRent === 0 || s.r / (days / 30.44) >= state.minRent) &&
+    (!state.textFilter || matchText(s, state.textFilter)));
 }
 
 /* ── 그리기 헬퍼 ──────────────────────────────────── */
@@ -525,17 +614,87 @@ $("#zOut").onclick = () => { mapZoom = Math.max(10, mapZoom - 1); render(); };
   addEventListener("mouseup", () => { drag = null; wrap.style.cursor = ""; });
 })();
 
-/* ── 4) 프로파일 ──────────────────────────────────── */
-function drawProfile(rows) {
-  const s = rows.find(x => x.id === state.sel) || [...rows].sort((a, b) => b.npd - a.npd)[0];
-  if (!s) { $("#cProf").innerHTML = ""; $("#cCum").innerHTML = ""; return; }
-  state.sel = s.id;
-  $("#pfTitle").textContent = `${s.n} — 평일 시간대 프로파일 (${flowTxt(s.npd)})`;
-  const [rr, bb] = D.profile[s.id] || [Array(24).fill(0), Array(24).fill(0)];
+/* ── 4) 요일×시간 집계 ────────────────────────────────
+   profile[sid] = [대여 168개, 반납 168개]  (요일 0=월 … 6=일, 각 24시간, 기간 전체 합계)
+   평균은 화면에서 관측 일수로 나눈다. 대여소를 고르지 않으면 필터에 걸린 전체를 합산한다. */
+const DOWK = ["월", "화", "수", "목", "금", "토", "일"];
+const DOWSET = { "평일": [0, 1, 2, 3, 4], "주말": [5, 6], "전체": [0, 1, 2, 3, 4, 5, 6] };
 
-  const g = frame($("#cProf"), { l: 42, r: 10, t: 10, b: 24 });
+function sumProfile(rows) {                    // 168칸 합계
+  const r = new Float64Array(168), b = new Float64Array(168);
+  rows.forEach(s => { const p = D.profile[s.id]; if (!p) return;
+    for (let i = 0; i < 168; i++) { r[i] += p[0][i]; b[i] += p[1][i]; } });
+  return [r, b];
+}
+function hourly(prof, mode) {                  // 선택한 요일군의 시간당 평균 24칸
+  const dows = DOWSET[mode];
+  const days = dows.reduce((a, d) => a + D.meta.daysPerDow[d], 0) || 1;
+  const out = [new Array(24).fill(0), new Array(24).fill(0)];
+  dows.forEach(d => { for (let h = 0; h < 24; h++) {
+    out[0][h] += prof[0][d * 24 + h]; out[1][h] += prof[1][d * 24 + h]; } });
+  return out.map(a => a.map(v => v / days));
+}
+
+/* ── 히트맵 (요일 × 시간) ─────────────────────────── */
+function drawHeat(rows) {
+  const g = frame($("#cHeat"), { l: 34, r: 66, t: 8, b: 24 });
+  const [r] = sumProfile(rows);
+  const cell = [];
+  for (let d = 0; d < 7; d++) for (let h = 0; h < 24; h++)
+    cell.push(r[d * 24 + h] / (D.meta.daysPerDow[d] || 1));
+  const mx = Math.max(...cell) || 1;
+  const cw = (g.x1 - g.x0) / 24, ch = (g.y1 - g.y0) / 7;
+  const RAMP = ["#cde2fb","#b7d3f6","#9ec5f4","#86b6ef","#6da7ec","#5598e7",
+                "#3987e5","#2a78d6","#256abf","#1c5cab","#184f95","#104281","#0d366b"];
+  for (let d = 0; d < 7; d++) for (let h = 0; h < 24; h++) {
+    const v = cell[d * 24 + h], t = v / mx;
+    const rect = el("rect", { x: g.x0 + h * cw, y: g.y0 + d * ch,
+      width: cw - .6, height: ch - .6, rx: 1.5,
+      fill: RAMP[Math.min(RAMP.length - 1, Math.floor(t * RAMP.length))] });
+    rect.onmousemove = e => showTip(e,
+      `<b>${DOWK[d]}요일 ${h}시</b><br>시간당 평균 대여 ${v.toFixed(1)}건<br>
+       <span style="color:var(--muted)">관측 ${D.meta.daysPerDow[d]}일 평균</span>`);
+    rect.onmouseleave = hideTip;
+    g.svg.appendChild(rect);
+  }
+  DOWK.forEach((k, d) => { const t = el("text", { x: g.x0 - 8, y: g.y0 + d * ch + ch / 2 + 3.5,
+    class: "ax", "text-anchor": "end" }); t.textContent = k; g.svg.appendChild(t); });
+  for (let h = 0; h < 24; h += 3) { const t = el("text", { x: g.x0 + h * cw + cw / 2,
+    y: g.y1 + 15, class: "ax", "text-anchor": "middle" }); t.textContent = h + "시";
+    g.svg.appendChild(t); }
+  // 눈금 막대
+  const lw = 13, lx = g.x1 + 16;
+  RAMP.forEach((c, i) => g.svg.appendChild(el("rect", { x: lx,
+    y: g.y1 - (i + 1) * (g.y1 - g.y0) / RAMP.length, width: lw,
+    height: (g.y1 - g.y0) / RAMP.length, fill: c })));
+  [[g.y0, mx.toFixed(0)], [g.y1, "0"]].forEach(([y, txt]) => {
+    const t = el("text", { x: lx + lw + 5, y: y + 4, class: "ax" });
+    t.textContent = txt; g.svg.appendChild(t); });
+  $("#heatWho").textContent = state.sel
+    ? `— ${(D.stations.find(x => x.id === state.sel) || {}).n || ""}`
+    : `— 필터에 걸린 ${fmt(rows.length)}개 대여소 합계`;
+}
+
+/* ── 프로파일 (대여/반납 + 누적 재고) ─────────────── */
+function drawProfile(rows) {
+  const one = state.sel ? rows.find(x => x.id === state.sel) : null;
+  if (state.sel && !one) state.sel = null;                 // 필터에서 빠지면 전체로 복귀
+  const target = one ? [one] : rows;
+  drawSelBar(one, rows.length);
+  const mode = state.dayMode;
+  const [rr, bb] = hourly(sumProfile(target), mode);
+  const label = one ? one.n : `전체 ${fmt(rows.length)}개 대여소 합계`;
+  $("#pfTitle").textContent = one
+    ? `${one.n} — ${mode} 시간대 프로파일 (${flowTxt(one.npd)})`
+    : `${mode} 시간대 프로파일 — 필터에 걸린 ${fmt(rows.length)}개 대여소 합계`;
+  $("#pfCap").innerHTML = `${mode} 하루 평균. 대여선이 반납선보다 위면 그 시간은 <b>순유출</b>,
+    아래면 <b>순유입</b>입니다. 오른쪽 누적선이 0 밑으로 내려간 구간이 재고가 줄어드는 시간대입니다.
+    <span style="color:var(--muted)">(기간 필터와 무관하게 전체 기간 평균입니다)</span>`;
+  if (!rr.some(v => v > 0)) { $("#cProf").innerHTML = ""; $("#cCum").innerHTML = ""; return; }
+
+  const g = frame($("#cProf"), { l: 52, r: 10, t: 10, b: 24 });
   const mx = Math.max(...rr, ...bb, .5) * 1.15;
-  yAxis(g, 0, mx, 3, v => v.toFixed(1));
+  yAxis(g, 0, mx, 3, v => v >= 100 ? fmt(Math.round(v)) : v.toFixed(1));
   const line = (arr, color) => { let d = "";
     arr.forEach((v, i) => { d += (i ? "L" : "M") + sx(i, 0, 23, g.x0, g.x1).toFixed(1) + " "
       + sx(v, 0, mx, g.y1, g.y0).toFixed(1) + " "; });
@@ -548,15 +707,15 @@ function drawProfile(rows) {
   hit.onmousemove = e => { const r = g.svg.getBoundingClientRect();
     const i = Math.round(sx(e.clientX - r.left, g.x0, g.x1, 0, 23));
     if (i < 0 || i > 23) return;
-    showTip(e, `<b>${i}시</b><br>대여 ${rr[i].toFixed(2)}대<br>반납 ${bb[i].toFixed(2)}대<br>
+    showTip(e, `<b>${i}시</b> · ${label}<br>대여 ${rr[i].toFixed(2)}대 / 반납 ${bb[i].toFixed(2)}대<br>
       ${flowTxt(rr[i] - bb[i], 2, "대")}`); };
   hit.onmouseleave = hideTip; g.svg.appendChild(hit);
 
-  const g2 = frame($("#cCum"), { l: 42, r: 10, t: 10, b: 24 });
+  const g2 = frame($("#cCum"), { l: 52, r: 10, t: 10, b: 24 });
   const cum = []; let acc = 0;
   for (let i = 0; i < 24; i++) { acc += bb[i] - rr[i]; cum.push(acc); }
   const lo = Math.min(0, ...cum) * 1.2, hi = Math.max(0, ...cum) * 1.2 || 1;
-  yAxis(g2, lo, hi, 4, v => v.toFixed(1));
+  yAxis(g2, lo, hi, 4, v => Math.abs(v) >= 100 ? fmt(Math.round(v)) : v.toFixed(1));
   const zy = sx(0, lo, hi, g2.y1, g2.y0);
   g2.svg.appendChild(el("line", { x1: g2.x0, x2: g2.x1, y1: zy, y2: zy, class: "bl" }));
   let d = "";
@@ -566,13 +725,12 @@ function drawProfile(rows) {
   const mi = cum.indexOf(Math.min(...cum));
   g2.svg.appendChild(el("circle", { cx: sx(mi, 0, 23, g2.x0, g2.x1),
     cy: sx(cum[mi], lo, hi, g2.y1, g2.y0), r: 4.5, fill: cssv("--pos") }));
-  // 최저점이 축 끝에 붙으면 라벨이 잘리므로 앵커를 뒤집는다
-  const lx = sx(mi, 0, 23, g2.x0, g2.x1);
+  const lx2 = sx(mi, 0, 23, g2.x0, g2.x1);
   const anchor = mi >= 19 ? "end" : mi <= 3 ? "start" : "middle";
-  const lab = el("text", { x: lx + (anchor === "end" ? 4 : anchor === "start" ? -4 : 0),
-    class: "ax", "text-anchor": anchor,
-    y: sx(cum[mi], lo, hi, g2.y1, g2.y0) - 9, fill: cssv("--pos") });
-  lab.textContent = `최저 ${mi}시 ${cum[mi].toFixed(1)}대`; g2.svg.appendChild(lab);
+  const lab = el("text", { x: lx2 + (anchor === "end" ? 4 : anchor === "start" ? -4 : 0),
+    class: "ax", "text-anchor": anchor, y: sx(cum[mi], lo, hi, g2.y1, g2.y0) - 9, fill: cssv("--pos") });
+  lab.textContent = `최저 ${mi}시 ${cum[mi] <= -100 ? fmt(Math.round(cum[mi])) : cum[mi].toFixed(1)}대`;
+  g2.svg.appendChild(lab);
   [0, 6, 12, 18, 23].forEach(i => { const t = el("text", { x: sx(i, 0, 23, g2.x0, g2.x1),
     y: g2.y1 + 16, class: "ax", "text-anchor": "middle" }); t.textContent = i + "시";
     g2.svg.appendChild(t); });
@@ -590,8 +748,11 @@ function drawKpis(rows) {
     ["기간 총 대여", fmt(tot) + "건", `${D.months[state.from]} ~ ${D.months[state.to]} · ${days}일`],
     ["일평균 대여", fmt(Math.round(tot / days)) + "건", "관측일 기준"],
     ["하루 0.3대 이상 새는 곳", fmt(drain) + "개", rows.length ? (drain / rows.length * 100).toFixed(1) + "%" : "-"],
-    ["가장 많이 빠지는 곳", worst ? flowTxt(worst.npd) : "-", worst ? worst.n.slice(0, 16) : ""],
-    ["가장 많이 쌓이는 곳", best ? flowTxt(best.npd) : "-", best ? best.n.slice(0, 16) : ""],
+    // 카드 제목이 이미 방향을 말하므로 값에는 크기만 둔다(줄바꿈 방지)
+    ["가장 많이 빠지는 곳 (순유출)", worst ? flow(worst.npd).a.toFixed(2) + "대/일" : "-",
+     worst ? worst.n.slice(0, 16) : ""],
+    ["가장 많이 쌓이는 곳 (순유입)", best ? flow(best.npd).a.toFixed(2) + "대/일" : "-",
+     best ? best.n.slice(0, 16) : ""],
   ];
   $("#kpis").innerHTML = k.map(([a, b, c]) =>
     `<div class="kpi"><div class="k">${a}</div><div class="v">${b}</div><div class="n">${c}</div></div>`).join("");
@@ -619,9 +780,107 @@ document.querySelectorAll("#tbl th").forEach(th => th.onclick = () => {
   if (state.sortK === k) state.sortAsc = !state.sortAsc;
   else { state.sortK = k; state.sortAsc = false; } render(); });
 
+/* ── 대여소 찾기 (자동완성) ───────────────────────────
+   '정확한 이름을 알아야 찾을 수 있다'는 문제를 없앤다.
+   이름·ID·동·구 어디든 일부만 쳐도 후보가 뜨고, 클릭이나 Enter 로 고른다. */
+const acList = $("#acList"), qBox = $("#q");
+let acItems = [], acIdx = -1, acFilterRow = false;
+
+function acClose() { acList.hidden = true; qBox.setAttribute("aria-expanded", "false");
+  acItems = []; acIdx = -1; }
+
+function acOpen() {
+  const q = qBox.value.trim().toLowerCase();
+  if (!q) { acClose(); return; }
+  const hits = filtered().filter(s => matchText(s, q));
+  acItems = hits.sort((a, b) => b.r - a.r).slice(0, 10);
+  acFilterRow = hits.length > 1;
+  if (!acItems.length) {
+    acList.innerHTML = `<li class="none">일치하는 대여소가 없습니다.
+      다른 필터가 걸려 있는지 확인해 보세요.</li>`;
+  } else {
+    acList.innerHTML = acItems.map((s, i) => `<li role="option" data-i="${i}"
+        aria-selected="${i === acIdx}">
+        <span><span class="nm">${s.n}</span>
+          <span class="meta"> ${s.g} · ${s.id}</span></span>
+        <span class="meta ${flow(s.npd).c}">${flowTxt(s.npd)}</span></li>`).join("")
+      + (acFilterRow ? `<li class="act" role="option" data-act="filter"
+          aria-selected="false">「${qBox.value.trim()}」 포함 ${fmt(hits.length)}개만 보기</li>` : "");
+  }
+  acList.hidden = false; qBox.setAttribute("aria-expanded", "true");
+}
+
+function acPick(i) {
+  if (i === "filter") { state.textFilter = qBox.value.trim().toLowerCase();
+    qBox.value = ""; acClose(); render(); return; }
+  const s = acItems[i]; if (!s) return;
+  state.sel = s.id; qBox.value = ""; acClose(); render();
+  $("#selBar").scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+qBox.oninput = acOpen;
+qBox.onfocus = acOpen;
+qBox.onkeydown = e => {
+  const n = acItems.length + (acFilterRow ? 1 : 0);
+  if (e.key === "Escape") { acClose(); return; }
+  if (!n) return;
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault();
+    acIdx = (acIdx + (e.key === "ArrowDown" ? 1 : -1) + n) % n;
+    [...acList.children].forEach((li, i) => li.setAttribute("aria-selected", i === acIdx));
+    acList.children[acIdx]?.scrollIntoView({ block: "nearest" }); return; }
+  if (e.key === "Enter") { e.preventDefault();
+    if (acIdx < 0) acIdx = 0;
+    acPick(acIdx >= acItems.length ? "filter" : acIdx); }
+};
+acList.onclick = e => { const li = e.target.closest("li"); if (!li) return;
+  acPick(li.dataset.act === "filter" ? "filter" : +li.dataset.i); };
+document.addEventListener("click", e => {
+  if (!e.target.closest(".combo")) acClose(); });
+
+/* ── 선택된 대여소 배너 ───────────────────────────────
+   "지금 어떤 대여소를 보고 있는지" 를 항상 명시한다. */
+function drawSelBar(s, n) {
+  if (!s) { $("#selBar").innerHTML = `<div class="selhint">
+    지금은 <b>대전 전체(필터에 걸린 ${fmt(n ?? 0)}개 대여소)</b> 기준으로 보고 있습니다.
+    특정 대여소만 보려면 위의 <b>대여소 찾기</b>에 이름 일부를 입력하거나,
+    랭킹 막대·지도의 점·아래 표의 행을 클릭하세요.</div>`; return; }
+  const f = flow(s.npd), fn = flow(s.no);
+  const cell = (k, v, cls = "") => `<div><dt>${k}</dt><dd class="${cls}">${v}</dd></div>`;
+  $("#selBar").innerHTML = `
+    <div class="who">${s.n}<span class="sid">${s.id}</span></div>
+    <dl>
+      ${cell("위치", `${s.g} ${s.d || ""}`)}
+      ${cell("이용 유형", s.t)}
+      ${cell("기간 대여 / 반납", `${fmt(s.r)} / ${fmt(s.b)}`)}
+      ${cell("누적", flowInt(s.no), fn.c)}
+      ${cell("일평균", flowTxt(s.npd), f.c)}
+      ${cell("CPI / WR", `${s.cpi ?? "-"} / ${s.wr ?? "-"}`)}
+      ${cell("재배치", s.rn === 0 ? "0" : (s.rn > 0 ? "유입 " : "유출 ") + fmt(Math.abs(s.rn)))}
+    </dl>
+    <button class="ghost clear" id="clearSel">선택 해제</button>`;
+  $("#clearSel").onclick = () => { state.sel = null; render(); };
+}
+
+/* ── 적용 중인 검색 필터 태그 ─────────────────────── */
+function drawTags() {
+  const host = $("#tagbar");
+  host.innerHTML = state.textFilter
+    ? `<span class="tag">검색 필터: 「${state.textFilter}」 포함
+         <button title="해제" id="clrText">✕</button></span>`
+    : "";
+  if (state.textFilter) $("#clrText").onclick = () => { state.textFilter = ""; render(); };
+}
+
 /* ── 렌더 ─────────────────────────────────────────── */
 function render() { const rows = filtered();
-  drawKpis(rows); drawDaily(); drawRank(rows); drawMap(rows); drawProfile(rows); drawTable(rows); }
+  drawTags();
+  const days = daysInRange();
+  const excl = D.stations.length - rows.length;
+  $("#minExcl").textContent = state.minRent === 0
+    ? `${fmt(rows.length)}개 표시 중`
+    : `${fmt(rows.length)}개 표시 · ${fmt(excl)}개 제외됨`;
+  drawKpis(rows); drawDaily(); drawRank(rows); drawMap(rows);
+  drawHeat(rows); drawProfile(rows); drawTable(rows); }
 document.querySelector(".help").onclick = e => { e.preventDefault();
   const d = $("#typeHelp"); d.open = true; d.scrollIntoView({ behavior: "smooth", block: "nearest" }); };
 render();
