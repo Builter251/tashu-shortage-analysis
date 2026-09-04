@@ -86,8 +86,14 @@ tbody tr[aria-selected="true"]{background:var(--chip);box-shadow:inset 2px 0 0 v
 .combo{position:relative}
 .combo input{width:250px}
 .ac{position:absolute;top:100%;left:0;z-index:20;margin:4px 0 0;padding:4px;list-style:none;
-  background:var(--surface);border:1px solid var(--border);border-radius:9px;width:340px;
-  max-height:290px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.16)}
+  background:var(--surface);border:1px solid var(--border);border-radius:9px;width:380px;
+  max-height:400px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.16)}
+.ac .grp{position:sticky;top:-4px;background:var(--surface);color:var(--ink);font-weight:700;
+  font-size:11.5px;padding:7px 9px 4px;border-bottom:1px solid var(--grid);cursor:default;
+  display:block;letter-spacing:.02em}
+.ac .off{font-size:10.5px;color:var(--muted);border:1px solid var(--base);border-radius:4px;
+  padding:0 4px;margin-left:6px}
+.ac .rest{color:var(--muted);font-size:11.5px;padding:5px 9px 9px;cursor:default;display:block}
 .ac li{padding:7px 9px;border-radius:6px;cursor:pointer;font-size:12.5px;display:flex;
   justify-content:space-between;gap:10px;align-items:baseline}
 .ac li[aria-selected="true"],.ac li:hover{background:var(--chip)}
@@ -151,7 +157,7 @@ tbody tr[aria-selected="true"]{background:var(--chip);box-shadow:inset 2px 0 0 v
           aria-describedby="minHelp"><span class="hint" id="minExcl">&nbsp;</span></div>
       <div class="fgroup combo"><span class="flabel">대여소 찾기</span>
         <input type="search" id="q" autocomplete="off" role="combobox" aria-expanded="false"
-          aria-controls="acList" placeholder="이름·ID·동 입력 (예: 한사랑, ST0051, 둔산동)">
+          aria-controls="acList" placeholder="클릭하면 전체 목록 · 이름·ID·동 일부 입력">
         <ul class="ac" id="acList" role="listbox" hidden></ul></div>
       <div class="fgroup"><span class="flabel">&nbsp;</span><button class="ghost" id="reset">필터 초기화</button></div>
     </div>
@@ -329,7 +335,7 @@ const TYPES = ["출퇴근형", "여가형", "혼합/생활형", "판정 불가"]
 const state = { from: 0, to: D.months.length - 1, gu: new Set(GUS), type: new Set(TYPES),
                 minRent: 0,          // 월평균 대여 하한 (표본이 적은 대여소 제외)
                 textFilter: "",      // 검색어로 '목록을 좁힌' 경우에만 채워진다
-                sel: null, dayMode: "평일", sortK: "npd", sortAsc: false };
+                sel: null, selNote: null, dayMode: "평일", sortK: "npd", sortAsc: false };
 /* 검색창은 두 가지 일을 한다 — 헷갈리지 않도록 분리했다.
    · 목록에서 하나를 골라 클릭 → 그 대여소를 '선택'(프로파일 표시). 화면 전체는 그대로.
    · 목록 맨 아래 '…포함 N개만 보기' → 그때만 '필터'로 동작. 태그로 표시되고 ✕ 로 해제. */
@@ -358,6 +364,11 @@ const mkChips = (host, items, set) => {
     host.appendChild(b); });
 };
 mkChips($("#guChips"), GUS, state.gu);
+// 검색으로 필터 밖 대여소를 고르면 칩 상태를 코드로 되돌려야 한다
+function syncChips() {
+  [...$("#guChips").children].forEach(b => b.setAttribute("aria-pressed", state.gu.has(b.textContent)));
+  [...$("#typeChips").children].forEach(b => b.setAttribute("aria-pressed", state.type.has(b.textContent)));
+}
 // 평일/주말 전환 — 단일 선택
 const DAYS = ["평일", "주말", "전체"];
 $("#dayChips").innerHTML = DAYS.map(d =>
@@ -404,17 +415,30 @@ const matchText = (s, q) => s.n.toLowerCase().includes(q) || s.id.toLowerCase().
 function daysInRange() { let d = 0;
   for (let i = state.from; i <= state.to; i++) d += D.daysPerMonth[i]; return d || 1; }
 
-function filtered() {
+/* 선택한 기간의 지표를 모든 대여소에 대해 계산한다.
+   '대여소 찾기'는 이 전체 목록을 대상으로 한다 — 자치구 필터를 꺼 두었다고 해서
+   그 구 대여소를 검색으로도 못 찾는 것은 사용자가 기대하는 동작이 아니다. */
+let _mCache = { key: null, val: null };
+function withMetrics() {
+  // 기간이 바뀔 때만 다시 계산한다. 검색창 입력마다 1,332×19 루프를 도는 것을 막는다.
+  const key = state.from + ":" + state.to;
+  if (_mCache.key === key) return _mCache.val;
   const days = daysInRange();
-  return D.stations.map(s => {
+  const val = D.stations.map(s => {
     const [ra, ba] = D.monthly[s.id] || [[], []];
     let r = 0, b = 0;
     for (let i = state.from; i <= state.to; i++) { r += ra[i] || 0; b += ba[i] || 0; }
     return { ...s, r, b, no: r - b, npd: (r - b) / days, rn: s.ri - s.ro };
-  }).filter(s => state.gu.has(s.g) && state.type.has(s.t) &&
-    (state.minRent === 0 || s.r / (days / 30.44) >= state.minRent) &&
-    (!state.textFilter || matchText(s, state.textFilter)));
+  });
+  _mCache = { key, val };
+  return val;
 }
+const passes = (s, days) => state.gu.has(s.g) && state.type.has(s.t) &&
+  (state.minRent === 0 || s.r / (days / 30.44) >= state.minRent) &&
+  (!state.textFilter || matchText(s, state.textFilter));
+
+function filtered() { const days = daysInRange();
+  return withMetrics().filter(s => passes(s, days)); }
 
 /* ── 그리기 헬퍼 ──────────────────────────────────── */
 function frame(svg, m) { svg.innerHTML = "";
@@ -516,7 +540,8 @@ function drawRank(rows) {
     r.onmousemove = e => showTip(e, `<b>${s.n}</b><br>${s.g} · ${s.t}<br>
       대여 ${fmt(s.r)} / 반납 ${fmt(s.b)}<br>
       <b class="${flow(s.npd).c}">${flowTxt(s.npd)}</b> · 기간 누적 ${flowInt(s.no)}`);
-    r.onmouseleave = hideTip; r.onclick = () => { state.sel = s.id; render(); };
+    r.onmouseleave = hideTip;
+    r.onclick = () => { state.sel = s.id; state.selNote = null; render(); };
     g.svg.appendChild(r);
     // 글자 수로 자르면 한글·영문 폭 차이 때문에 넘친다. 실제 렌더 폭을 재서 자른다.
     const lb = el("text", { x: g.x0 - 8, y: y + h / 2 + 3.7, class: "ax", "text-anchor": "end" });
@@ -781,69 +806,115 @@ function drawTable(rows) {
     <td>${s.cpi ?? "-"}</td><td>${s.wr ?? "-"}</td><td>${s.t}</td>
     <td>${s.rn === 0 ? "0" : (s.rn > 0 ? "유입 " : "유출 ") + fmt(Math.abs(s.rn))}</td></tr>`).join("");
   $("#tbl tbody").querySelectorAll("tr").forEach(tr =>
-    tr.onclick = () => { state.sel = tr.dataset.id; render(); });
+    tr.onclick = () => { state.sel = tr.dataset.id; state.selNote = null; render(); });
 }
 document.querySelectorAll("#tbl th").forEach(th => th.onclick = () => {
   const k = th.dataset.k;
   if (state.sortK === k) state.sortAsc = !state.sortAsc;
   else { state.sortK = k; state.sortAsc = false; } render(); });
 
-/* ── 대여소 찾기 (자동완성) ───────────────────────────
-   '정확한 이름을 알아야 찾을 수 있다'는 문제를 없앤다.
-   이름·ID·동·구 어디든 일부만 쳐도 후보가 뜨고, 클릭이나 Enter 로 고른다. */
+/* ── 대여소 찾기 ──────────────────────────────────────
+   · 입력칸을 클릭(포커스)만 해도 전체 목록이 열린다. 이름을 모를 때도 훑어볼 수 있게.
+   · 자치구 사전순으로 그룹을 묶고, 그룹 안에서는 순유출 내림차순.
+     1,332개를 순유출 한 줄로만 세우면 아는 동네를 찾을 수가 없다.
+   · **검색 대상은 항상 전체 대여소다.** 자치구·유형 필터가 걸려 있어도 검색에는 나오고,
+     필터 밖 항목을 고르면 필요한 필터만 자동으로 풀고 무엇을 풀었는지 알려 준다. */
 const acList = $("#acList"), qBox = $("#q");
-let acItems = [], acIdx = -1, acFilterRow = false;
+let acItems = [], acNodes = [], acIdx = -1, acFilterRow = false;
 
 function acClose() { acList.hidden = true; qBox.setAttribute("aria-expanded", "false");
-  acItems = []; acIdx = -1; }
+  acItems = []; acNodes = []; acIdx = -1; }
 
 function acOpen() {
   const q = qBox.value.trim().toLowerCase();
-  if (!q) { acClose(); return; }
-  const hits = filtered().filter(s => matchText(s, q));
-  acItems = hits.sort((a, b) => b.r - a.r).slice(0, 10);
-  acFilterRow = hits.length > 1;
-  if (!acItems.length) {
-    acList.innerHTML = `<li class="none">일치하는 대여소가 없습니다.
-      다른 필터가 걸려 있는지 확인해 보세요.</li>`;
+  const days = daysInRange();
+  const all = withMetrics();
+  const visible = new Set(all.filter(s => passes(s, days)).map(s => s.id));
+  const hits = q ? all.filter(s => matchText(s, q)) : all;
+
+  // 자치구 사전순 → 그룹 내 순유출 내림차순
+  const byGu = new Map();
+  hits.forEach(s => { if (!byGu.has(s.g)) byGu.set(s.g, []); byGu.get(s.g).push(s); });
+  const gus = [...byGu.keys()].sort((a, b) => a.localeCompare(b, "ko"));
+  gus.forEach(g => byGu.get(g).sort((a, b) => b.npd - a.npd));
+
+  acItems = []; acFilterRow = q && hits.length > 1;
+  let html = "";
+  if (!hits.length) {
+    html = `<li class="none">「${qBox.value.trim()}」와 일치하는 대여소가 없습니다.</li>`;
   } else {
-    acList.innerHTML = acItems.map((s, i) => `<li role="option" data-i="${i}"
-        aria-selected="${i === acIdx}">
-        <span><span class="nm">${s.n}</span>
-          <span class="meta"> ${s.g} · ${s.id}</span></span>
-        <span class="meta ${flow(s.npd).c}">${flowTxt(s.npd)}</span></li>`).join("")
-      + (acFilterRow ? `<li class="act" role="option" data-act="filter"
-          aria-selected="false">「${qBox.value.trim()}」 포함 ${fmt(hits.length)}개만 보기</li>` : "");
+    // 검색어가 없을 때 1,332개를 모두 그리면 입력할 때마다 300ms 씩 멈춘다.
+    // 구마다 순유출 상위 LIST_CAP 개만 보여주고, 나머지는 이름을 치면 나온다.
+    // '동' 처럼 거의 모든 이름에 걸리는 한 글자 검색도 상한을 둔다(렌더 240ms → 20ms).
+    const LIST_CAP = (!q || hits.length > 300) ? 25 : 999;
+    gus.forEach(g => {
+      const list = byGu.get(g), shown = list.slice(0, LIST_CAP);
+      html += `<li class="grp">${g} <span class="meta">${fmt(list.length)}개</span></li>`;
+      shown.forEach(s => {
+        const i = acItems.length; acItems.push(s);
+        const off = visible.has(s.id) ? "" : `<span class="off">필터 밖</span>`;
+        html += `<li role="option" data-i="${i}" aria-selected="false">
+          <span><span class="nm">${s.n}</span>
+            <span class="meta"> ${s.id}</span>${off}</span>
+          <span class="meta ${flow(s.npd).c}">${flowTxt(s.npd)}</span></li>`;
+      });
+      if (list.length > shown.length)
+        html += `<li class="rest">… ${g} 나머지 ${fmt(list.length - shown.length)}개는
+          ${q ? "검색어를 더 입력하면" : "이름이나 동을 입력하면"} 나옵니다</li>`;
+    });
+    if (acFilterRow)
+      html += `<li class="act" role="option" data-act="filter" aria-selected="false">
+        「${qBox.value.trim()}」 포함 ${fmt(hits.length)}개만 보기</li>`;
   }
+  acList.innerHTML = html;
+  acNodes = [...acList.querySelectorAll("li[role=option]")];
+  acIdx = -1;
   acList.hidden = false; qBox.setAttribute("aria-expanded", "true");
+  acList.scrollTop = 0;
+}
+
+/* 고른 대여소가 현재 필터에 가려져 있으면, 가리고 있던 필터만 풀어 준다. */
+function ensureVisible(s) {
+  const undone = [], days = daysInRange();
+  if (!state.gu.has(s.g)) { state.gu.add(s.g); undone.push(`자치구 「${s.g}」`); }
+  if (!state.type.has(s.t)) { state.type.add(s.t); undone.push(`이용 유형 「${s.t}」`); }
+  if (state.minRent > 0 && s.r / (days / 30.44) < state.minRent) {
+    state.minRent = 0; $("#minRent").value = 0;
+    $("#minLabel").textContent = "제한 없음"; undone.push("최소 이용량"); }
+  if (state.textFilter && !matchText(s, state.textFilter)) {
+    state.textFilter = ""; undone.push("검색 필터"); }
+  if (undone.length) syncChips();
+  return undone;
 }
 
 function acPick(i) {
   if (i === "filter") { state.textFilter = qBox.value.trim().toLowerCase();
     qBox.value = ""; acClose(); render(); return; }
   const s = acItems[i]; if (!s) return;
-  state.sel = s.id; qBox.value = ""; acClose(); render();
+  const undone = ensureVisible(s);
+  state.sel = s.id; state.selNote = undone; qBox.value = ""; acClose(); render();
   $("#selBar").scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
-qBox.oninput = acOpen;
+let acTimer = null;
+qBox.oninput = () => { clearTimeout(acTimer); acTimer = setTimeout(acOpen, 110); };
 qBox.onfocus = acOpen;
+qBox.onclick = () => { if (acList.hidden) acOpen(); };
 qBox.onkeydown = e => {
-  const n = acItems.length + (acFilterRow ? 1 : 0);
-  if (e.key === "Escape") { acClose(); return; }
-  if (!n) return;
+  if (e.key === "Escape") { acClose(); qBox.blur(); return; }
+  if (e.key === "ArrowDown" && acList.hidden) { acOpen(); return; }
+  const n = acNodes.length; if (!n) return;
   if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault();
     acIdx = (acIdx + (e.key === "ArrowDown" ? 1 : -1) + n) % n;
-    [...acList.children].forEach((li, i) => li.setAttribute("aria-selected", i === acIdx));
-    acList.children[acIdx]?.scrollIntoView({ block: "nearest" }); return; }
+    acNodes.forEach((li, i) => li.setAttribute("aria-selected", i === acIdx));
+    acNodes[acIdx].scrollIntoView({ block: "nearest" }); return; }
   if (e.key === "Enter") { e.preventDefault();
-    if (acIdx < 0) acIdx = 0;
-    acPick(acIdx >= acItems.length ? "filter" : acIdx); }
+    const li = acNodes[acIdx < 0 ? 0 : acIdx];
+    acPick(li.dataset.act === "filter" ? "filter" : +li.dataset.i); }
 };
-acList.onclick = e => { const li = e.target.closest("li"); if (!li) return;
+acList.onclick = e => { const li = e.target.closest("li[role=option]"); if (!li) return;
   acPick(li.dataset.act === "filter" ? "filter" : +li.dataset.i); };
-document.addEventListener("click", e => {
-  if (!e.target.closest(".combo")) acClose(); });
+document.addEventListener("click", e => { if (!e.target.closest(".combo")) acClose(); });
 
 /* ── 선택된 대여소 배너 ───────────────────────────────
    "지금 어떤 대여소를 보고 있는지" 를 항상 명시한다. */
@@ -865,8 +936,11 @@ function drawSelBar(s, n) {
       ${cell("CPI / WR", `${s.cpi ?? "-"} / ${s.wr ?? "-"}`)}
       ${cell("재배치", s.rn === 0 ? "0" : (s.rn > 0 ? "유입 " : "유출 ") + fmt(Math.abs(s.rn)))}
     </dl>
-    <button class="ghost clear" id="clearSel">선택 해제</button>`;
-  $("#clearSel").onclick = () => { state.sel = null; render(); };
+    <button class="ghost clear" id="clearSel">선택 해제</button>
+    ${(state.selNote && state.selNote.length)
+      ? `<div style="flex-basis:100%;margin-top:8px;font-size:12px;color:var(--ink2)">
+           이 대여소가 필터에 가려져 있어 ${state.selNote.join(" · ")} 필터를 해제했습니다.</div>` : ""}`;
+  $("#clearSel").onclick = () => { state.sel = null; state.selNote = null; render(); };
 }
 
 /* ── 적용 중인 검색 필터 태그 ─────────────────────── */
