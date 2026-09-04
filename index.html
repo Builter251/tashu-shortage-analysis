@@ -47,7 +47,7 @@ button.ghost{border:1px solid var(--base);background:transparent;color:var(--ink
 .kpi .n{font-size:11.5px;color:var(--ink2);margin-top:2px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:900px){.grid2{grid-template-columns:1fr}}
-svg{display:block;width:100%;overflow:visible}
+svg{display:block;width:100%;overflow:hidden}
 .ax{fill:var(--muted);font-size:10.5px}
 .gl{stroke:var(--grid);stroke-width:1}
 .bl{stroke:var(--base);stroke-width:1}
@@ -80,6 +80,22 @@ tbody tr[aria-selected="true"]{background:var(--chip);box-shadow:inset 2px 0 0 v
   filter:brightness(.62) contrast(1.06) saturate(.65)}}
 :root[data-theme="dark"] .mapwrap .tiles img{filter:brightness(.62) contrast(1.06) saturate(.65)}
 .pos{color:var(--pos)} .neg{color:var(--neg)}
+.help{font-size:11px;color:var(--s1);text-decoration:none;border-bottom:1px dotted var(--s1)}
+.expl{padding:0}
+.expl summary{cursor:pointer;padding:13px 18px;font-size:13.5px;font-weight:600;list-style:none}
+.expl summary::-webkit-details-marker{display:none}
+.expl summary::before{content:"▸ ";color:var(--muted)}
+.expl[open] summary::before{content:"▾ "}
+.expl .mut{color:var(--ink2);font-weight:400;font-size:12.5px}
+.expl-body{padding:0 18px 16px}
+.defs{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px}
+@media(max-width:760px){.defs{grid-template-columns:1fr}}
+.defs>div{background:var(--chip);border-radius:9px;padding:11px 13px;font-size:13px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--ink);
+  margin:5px 0 6px}
+.tdefs{font-size:12.5px}
+.tdefs td,.tdefs th{text-align:left;vertical-align:top}
+.tdefs td:first-child{white-space:nowrap}
 .foot{color:var(--muted);font-size:12px;margin-top:22px;line-height:1.7}
 </style>
 </head>
@@ -96,13 +112,45 @@ tbody tr[aria-selected="true"]{background:var(--chip);box-shadow:inset 2px 0 0 v
       <div class="fgroup"><span class="flabel">시작 월</span><select id="mFrom"></select></div>
       <div class="fgroup"><span class="flabel">종료 월</span><select id="mTo"></select></div>
       <div class="fgroup"><span class="flabel">자치구</span><div class="chips" id="guChips"></div></div>
-      <div class="fgroup"><span class="flabel">이용 유형</span><div class="chips" id="typeChips"></div></div>
+      <div class="fgroup"><span class="flabel">이용 유형 <a href="#typeHelp" class="help"
+        title="분류 기준 보기">기준?</a></span><div class="chips" id="typeChips"></div></div>
       <div class="fgroup"><span class="flabel">기간 내 최소 대여 <b id="minLabel">0</b>건</span>
         <input type="range" id="minRent" min="0" max="20000" step="500" value="0" style="width:160px"></div>
       <div class="fgroup"><span class="flabel">대여소 검색</span><input type="search" id="q" placeholder="이름 / ID"></div>
       <div class="fgroup"><span class="flabel">&nbsp;</span><button class="ghost" id="reset">필터 초기화</button></div>
     </div>
   </div>
+
+  <details class="card expl" id="typeHelp">
+    <summary>이용 유형은 어떻게 나눴나 <span class="mut">— 인상이 아니라 계산 가능한 두 지표로 정의했습니다</span></summary>
+    <div class="expl-body">
+      <div class="defs">
+        <div><b>CPI</b> (첨두 집중도)
+          <div class="mono">평일 07–09시 + 17–19시 대여 ÷ 평일 전체 대여</div>
+          <div class="mut">이 6시간은 하루 24시간의 정확히 25%. 이용이 고르게 퍼져 있으면 <b>CPI ≈ 0.25</b>가
+            기준선이고, 이보다 높으면 출퇴근 첨두에 몰려 있다는 뜻입니다.</div></div>
+        <div><b>WR</b> (주말비)
+          <div class="mono">주말 1일 평균 대여 ÷ 평일 1일 평균 대여</div>
+          <div class="mut">1보다 작으면 주말에 이용이 줄고(통근성), 1보다 크면 주말에 늘어납니다(여가성).</div></div>
+      </div>
+      <table class="tdefs"><thead><tr><th>유형</th><th>조건</th><th>읽는 법</th><th>예시</th></tr></thead><tbody>
+        <tr><td><b>출퇴근형</b></td><td class="mono">CPI ≥ 0.40 그리고 WR ≤ 0.8</td>
+            <td>평일 첨두에 몰리고 주말엔 빠진다</td><td>목동 한사랑아파트 109동 (CPI 0.42 · WR 0.78)</td></tr>
+        <tr><td><b>여가형</b></td><td class="mono">WR ≥ 1.1 그리고 CPI ≤ 0.30</td>
+            <td>주말·낮 시간대에 완만하게 퍼진다</td><td>만년동 한밭수목원 (CPI 0.28 · WR 2.19)</td></tr>
+        <tr><td><b>혼합/생활형</b></td><td class="mono">그 외</td>
+            <td>통학·장보기 등 상시 수요. 가장 흔한 유형</td><td>장동 대덕대학교 (CPI 0.30 · WR 0.54)</td></tr>
+        <tr><td><b>판정 불가</b></td><td class="mono">월평균 대여 30건 미만</td>
+            <td>표본이 적어 두 지표가 요동친다. 억지로 분류하지 않는 것도 분석 판단이다</td><td>—</td></tr>
+      </tbody></table>
+      <p class="mut" style="margin:10px 0 0">
+        임계값 0.40 / 0.8 / 1.1은 문헌값이 아니라 <b>전 대여소 분포를 보고 정한 선</b>입니다.
+        그리고 이 유형은 <b>부족을 예측하지 못했습니다</b> — CPI와 일평균 순유출의 상관은 −0.06,
+        순유출 상위 30개 중 출퇴근형은 6개뿐이고 23개가 혼합/생활형이었습니다.
+        유형은 <i>시간 프로파일의 모양</i>을 재는데, 부족은 <i>방향의 비대칭</i>에서 오기 때문입니다.
+        (자세한 내용은 REPORT.md)</p>
+    </div>
+  </details>
 
   <div class="kpis" id="kpis"></div>
 
@@ -220,6 +268,10 @@ const mkChips = (host, items, set) => {
   host.innerHTML = "";
   items.forEach(v => { const b = document.createElement("button");
     b.className = "chip"; b.textContent = v; b.setAttribute("aria-pressed", "true");
+    b.title = ({ "출퇴근형": "CPI ≥ 0.40 그리고 WR ≤ 0.8 — 평일 첨두에 몰리고 주말엔 빠지는 대여소",
+      "여가형": "WR ≥ 1.1 그리고 CPI ≤ 0.30 — 주말·낮에 완만하게 퍼지는 대여소",
+      "혼합/생활형": "위 두 조건에 해당하지 않는 상시 수요형",
+      "판정 불가": "월평균 대여 30건 미만 — 표본이 적어 지표가 불안정" })[v] || v;
     b.onclick = () => { set.has(v) ? set.delete(v) : set.add(v);
       b.setAttribute("aria-pressed", set.has(v)); render(); };
     host.appendChild(b); });
@@ -341,7 +393,7 @@ function drawDaily() {
 
 /* ── 2) 랭킹 ──────────────────────────────────────── */
 function drawRank(rows) {
-  const g = frame($("#cRank"), { l: 138, r: 54, t: 8, b: 22 });
+  const g = frame($("#cRank"), { l: 150, r: 58, t: 8, b: 22 });
   const N = 9;
   const top = [...rows].sort((a, b) => b.npd - a.npd).slice(0, N);
   const bot = [...rows].sort((a, b) => a.npd - b.npd).slice(0, N).reverse();
@@ -361,10 +413,22 @@ function drawRank(rows) {
       대여 ${fmt(s.r)} / 반납 ${fmt(s.b)}<br>순유출 <b>${s.npd >= 0 ? "+" : ""}${s.npd.toFixed(2)}대/일</b>`);
     r.onmouseleave = hideTip; r.onclick = () => { state.sel = s.id; render(); };
     g.svg.appendChild(r);
+    // 글자 수로 자르면 한글·영문 폭 차이 때문에 넘친다. 실제 렌더 폭을 재서 자른다.
     const lb = el("text", { x: g.x0 - 8, y: y + h / 2 + 3.7, class: "ax", "text-anchor": "end" });
-    lb.textContent = s.n.length > 16 ? s.n.slice(0, 16) + "…" : s.n; g.svg.appendChild(lb);
-    const vl = el("text", { y: y + h / 2 + 3.7, class: "ax",
-      x: s.npd > 0 ? X + 5 : X - 5, "text-anchor": s.npd > 0 ? "start" : "end" });
+    lb.textContent = s.n; g.svg.appendChild(lb);
+    const avail = g.x0 - 14;
+    if (lb.getComputedTextLength() > avail) {
+      let t = s.n;
+      while (t.length > 2 && lb.getComputedTextLength() > avail) {
+        t = t.slice(0, -1); lb.textContent = t + "…";
+      }
+    }
+    // 막대 끝에 붙는 값 라벨이 축 밖으로 밀려나면, 안쪽으로 접어 넣는다
+    let vx = s.npd > 0 ? X + 5 : X - 5;
+    let anc = s.npd > 0 ? "start" : "end";
+    if (anc === "end" && vx < g.x0 + 34) { vx = X + 5; anc = "start"; }
+    if (anc === "start" && vx > g.x1 - 34) { vx = X - 5; anc = "end"; }
+    const vl = el("text", { y: y + h / 2 + 3.7, class: "ax", x: vx, "text-anchor": anc });
     vl.textContent = (s.npd >= 0 ? "+" : "") + s.npd.toFixed(2); g.svg.appendChild(vl);
   });
 }
@@ -548,6 +612,8 @@ document.querySelectorAll("#tbl th").forEach(th => th.onclick = () => {
 /* ── 렌더 ─────────────────────────────────────────── */
 function render() { const rows = filtered();
   drawKpis(rows); drawDaily(); drawRank(rows); drawMap(rows); drawProfile(rows); drawTable(rows); }
+document.querySelector(".help").onclick = e => { e.preventDefault();
+  const d = $("#typeHelp"); d.open = true; d.scrollIntoView({ behavior: "smooth", block: "nearest" }); };
 render();
 addEventListener("resize", () => render());
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => render());
