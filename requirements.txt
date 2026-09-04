@@ -1,0 +1,9 @@
+# M1-1 타슈 분석 — 실행 환경 (Python 3.10+)
+pandas==2.3.3
+numpy==2.2.6
+pyarrow==25.0.1
+matplotlib==3.10.9
+seaborn==0.13.2
+statsmodels==0.15.0
+scikit-learn==1.7.2
+duckdb==1.5.5

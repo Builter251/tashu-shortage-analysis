@@ -1,0 +1,546 @@
+<title>타슈 대여소 부족 대시보드</title>
+<style>
+:root{
+  --surface:#fcfcfb; --page:#f9f9f7; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --base:#c3c2b7; --border:rgba(11,11,11,.10);
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --pos:#e34948; --neg:#2a78d6; --chip:#eef0ee;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --surface:#1a1a19; --page:#0d0d0d; --ink:#fff; --ink2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --base:#383835; --border:rgba(255,255,255,.10);
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --pos:#e66767; --neg:#3987e5; --chip:#242422;
+}}
+:root[data-theme="dark"]{
+  --surface:#1a1a19; --page:#0d0d0d; --ink:#fff; --ink2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --base:#383835; --border:rgba(255,255,255,.10);
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --pos:#e66767; --neg:#3987e5; --chip:#242422;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);
+  font:14px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;}
+.wrap{max-width:1240px;margin:0 auto;padding:26px 18px 60px}
+h1{font-size:22px;margin:0 0 4px;letter-spacing:-.01em}
+.sub{color:var(--ink2);font-size:13.5px;margin:0 0 18px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:14px}
+.card h2{font-size:14.5px;margin:0 0 2px;font-weight:650}
+.card .cap{font-size:12.5px;color:var(--ink2);margin:0 0 12px}
+.filters{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end}
+.fgroup{display:flex;flex-direction:column;gap:5px}
+.flabel{font-size:11.5px;color:var(--muted);text-transform:none;letter-spacing:.02em}
+select,input[type=search]{background:var(--surface);color:var(--ink);border:1px solid var(--base);
+  border-radius:7px;padding:6px 9px;font:inherit;font-size:13px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--base);background:var(--surface);color:var(--ink2);border-radius:999px;
+  padding:5px 11px;font-size:12.5px;cursor:pointer;user-select:none}
+.chip[aria-pressed="true"]{background:var(--s1);border-color:var(--s1);color:#fff}
+button.ghost{border:1px solid var(--base);background:transparent;color:var(--ink2);border-radius:7px;
+  padding:6px 11px;font:inherit;font-size:12.5px;cursor:pointer}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 15px}
+.kpi .k{font-size:11.5px;color:var(--muted)}
+.kpi .v{font-size:23px;font-weight:640;letter-spacing:-.02em;margin-top:3px}
+.kpi .n{font-size:11.5px;color:var(--ink2);margin-top:2px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+svg{display:block;width:100%;overflow:visible}
+.ax{fill:var(--muted);font-size:10.5px}
+.gl{stroke:var(--grid);stroke-width:1}
+.bl{stroke:var(--base);stroke-width:1}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{padding:6px 9px;text-align:right;border-bottom:1px solid var(--grid);white-space:nowrap}
+th:nth-child(-n+3),td:nth-child(-n+3){text-align:left}
+th{color:var(--muted);font-weight:600;cursor:pointer;user-select:none;position:sticky;top:0;background:var(--surface)}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--chip)}
+tbody tr[aria-selected="true"]{background:var(--chip);box-shadow:inset 2px 0 0 var(--s1)}
+.scroll{max-height:340px;overflow:auto;overflow-x:auto}
+.tip{position:fixed;pointer-events:none;background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;padding:8px 11px;font-size:12px;line-height:1.5;color:var(--ink);opacity:0;
+  transition:opacity .1s;box-shadow:0 3px 14px rgba(0,0,0,.13);z-index:9;max-width:330px}
+.lg{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink2);margin-top:8px}
+.lg i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.note{font-size:12px;color:var(--muted);margin-top:10px}
+.mapwrap{position:relative;height:430px;border-radius:9px;overflow:hidden;
+  border:1px solid var(--border);background:var(--chip)}
+.mapwrap .tiles{position:absolute;inset:0;overflow:hidden}
+.mapwrap .tiles img{position:absolute;width:256px;height:256px;display:block}
+.mapwrap svg{position:absolute;inset:0;height:100%}
+.mapctl{position:absolute;right:9px;top:9px;display:flex;flex-direction:column;gap:5px}
+.mapctl button{width:29px;height:29px;padding:0;font-size:15px;line-height:1;
+  background:var(--surface);border-radius:7px}
+.attr{position:absolute;right:5px;bottom:3px;font-size:10.5px;color:var(--ink2);
+  background:color-mix(in srgb, var(--surface) 78%, transparent);padding:1px 6px;border-radius:5px}
+.attr a{color:inherit}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .mapwrap .tiles img{
+  filter:brightness(.62) contrast(1.06) saturate(.65)}}
+:root[data-theme="dark"] .mapwrap .tiles img{filter:brightness(.62) contrast(1.06) saturate(.65)}
+.pos{color:var(--pos)} .neg{color:var(--neg)}
+.foot{color:var(--muted);font-size:12px;margin-top:22px;line-height:1.7}
+</style>
+
+<div class="wrap">
+  <h1>타슈 대여소 부족 대시보드</h1>
+  <p class="sub">대전 공영자전거 대여이력 <b id="mTrips"></b>건 · <b id="mPeriod"></b> 중 관측 <b id="mObs"></b>일 ·
+    ACTIVE 대여소 <b id="mSt"></b>개 — 기간과 조건을 바꿔 가며 <b>어디가 비는지</b>를 탐색합니다.</p>
+
+  <div class="card">
+    <div class="filters">
+      <div class="fgroup"><span class="flabel">시작 월</span><select id="mFrom"></select></div>
+      <div class="fgroup"><span class="flabel">종료 월</span><select id="mTo"></select></div>
+      <div class="fgroup"><span class="flabel">자치구</span><div class="chips" id="guChips"></div></div>
+      <div class="fgroup"><span class="flabel">이용 유형</span><div class="chips" id="typeChips"></div></div>
+      <div class="fgroup"><span class="flabel">기간 내 최소 대여 <b id="minLabel">0</b>건</span>
+        <input type="range" id="minRent" min="0" max="20000" step="500" value="0" style="width:160px"></div>
+      <div class="fgroup"><span class="flabel">대여소 검색</span><input type="search" id="q" placeholder="이름 / ID"></div>
+      <div class="fgroup"><span class="flabel">&nbsp;</span><button class="ghost" id="reset">필터 초기화</button></div>
+    </div>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="card">
+    <h2>일별 대여량</h2>
+    <p class="cap">선택한 기간이 진하게 표시됩니다. 회색 띠는 데이터 결측 구간(총 37일)이며 보간하지 않았습니다.
+      <b>결측 구간에 마우스를 올리면 왜 결측으로 처리했는지 근거가 표시됩니다.</b></p>
+    <svg id="cDaily" height="210" role="img" aria-label="일별 대여량 시계열"></svg>
+    <div class="lg"><span><i style="background:var(--s1)"></i>일별 대여</span>
+      <span><i style="background:var(--s2)"></i>7일 이동평균</span>
+      <span><i style="background:var(--grid)"></i>결측 구간</span></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>일평균 순유출 랭킹</h2>
+      <p class="cap">순유출 = 대여 − 반납. <span class="pos">빨강</span>은 빠져나가기만 하는 곳,
+        <span class="neg">파랑</span>은 쌓이기만 하는 곳. 막대를 클릭하면 아래 프로파일이 바뀝니다.</p>
+      <svg id="cRank" height="430" role="img" aria-label="대여소별 순유출 랭킹"></svg>
+    </div>
+    <div class="card">
+      <h2>순유출 지도</h2>
+      <p class="cap">OpenStreetMap 위에 표시했습니다. 점 크기는 기간 내 이용량,
+        색은 순유출 방향. 점을 클릭하면 아래 프로파일이 바뀝니다.</p>
+      <div class="mapwrap" id="mapWrap">
+        <div class="tiles" id="mapTiles" aria-hidden="true"></div>
+        <svg id="cMap" role="img" aria-label="대여소 순유출 지도"></svg>
+        <div class="mapctl">
+          <button class="ghost" id="zOut" title="축소">−</button>
+          <button class="ghost" id="zIn" title="확대">+</button>
+        </div>
+        <div class="attr">© <a href="https://www.openstreetmap.org/copyright"
+          target="_blank" rel="noopener">OpenStreetMap</a> contributors</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 id="pfTitle">선택 대여소의 평일 시간대 프로파일</h2>
+    <p class="cap">평일 하루 평균. 파랑이 반납보다 위면 자전거가 나가는 시간, 아래면 들어오는 시간입니다.
+      아래 누적선이 0 밑으로 내려간 구간이 재고가 줄어드는 시간대입니다. <span style="color:var(--muted)">(전체 기간 평균 기준)</span></p>
+    <div class="grid2">
+      <svg id="cProf" height="230" role="img" aria-label="시간대별 대여·반납"></svg>
+      <svg id="cCum" height="230" role="img" aria-label="시간대별 누적 재고 변화"></svg>
+    </div>
+    <div class="lg"><span><i style="background:var(--s1)"></i>대여</span>
+      <span><i style="background:var(--s3)"></i>반납</span>
+      <span><i style="background:var(--s2)"></i>누적 재고 변화</span></div>
+  </div>
+
+  <div class="card">
+    <h2>대여소 표 <span style="color:var(--muted);font-weight:400" id="tblCount"></span></h2>
+    <p class="cap">머리글을 클릭하면 정렬됩니다. 행을 클릭하면 위 프로파일이 바뀝니다.</p>
+    <div class="scroll"><table id="tbl"><thead><tr>
+      <th data-k="id">ID</th><th data-k="n">대여소</th><th data-k="g">구</th>
+      <th data-k="r">대여</th><th data-k="b">반납</th><th data-k="no">순유출</th>
+      <th data-k="npd">일평균</th><th data-k="cpi">CPI</th><th data-k="wr">WR</th>
+      <th data-k="t">유형</th><th data-k="rn">재배치 순유입</th>
+    </tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <p class="foot">
+    출처: 공공데이터포털 · 대전교통공사 「대전시 공영자전거 타슈 대여이력 정보」 (2024-08 ~ 2026-03)<br>
+    2025년 12월은 배포 파일이 2025년 1월 데이터의 중복이어서 데이터가 없습니다. 2025-02-26~28, 03-01~03은 시스템 장애 결측입니다.<br>
+    상세 분석은 REPORT.md, 용어는 GLOSSARY.md 참조. 생성일 <span id="mGen"></span>
+  </p>
+</div>
+<div class="tip" id="tip"></div>
+
+<script>
+const D = __DATA__;
+
+/* 결측 구간과 그 근거. 그래프에서 빈 구간에 마우스를 올리면 이 내용이 뜬다.
+   "왜 비어 있는가"를 답할 수 없는 결측은 분석에서 가장 위험하다. */
+const MISSING = [
+  { from: "2025-02-26", to: "2025-02-28", days: 3, title: "시스템 장애",
+    why: "원본 파일명에 <b>「시스템 장애로 26일~28일 데이터 없음」</b>이라고 명시되어 있습니다.",
+    how: "배포처가 밝힌 결측이라 그대로 결측 처리했습니다." },
+  { from: "2025-03-01", to: "2025-03-03", days: 3, title: "시스템 장애",
+    why: "원본 파일명에 <b>「시스템 장애로 01일~03일 데이터 없음」</b>이라고 명시되어 있습니다.",
+    how: "배포처가 밝힌 결측이라 그대로 결측 처리했습니다." },
+  { from: "2025-12-01", to: "2025-12-31", days: 31, title: "파일 중복 배포 (본 분석에서 발견)",
+    why: "「25년12월」로 배포된 파일의 내용이 실제로는 <b>2025년 1월 데이터</b>였습니다. " +
+         "통행키(자전거번호+대여/반납 일시+대여소) 기준 교집합 203,545건, <b>일치율 100.00%</b>.",
+    how: "전역 중복 제거에서 이 파일 203,545행이 전량 사라졌고, 2025년 12월은 " +
+         "<b>데이터 자체가 존재하지 않는 달</b>로 처리했습니다. 모르고 썼다면 1월 수요가 두 배로 " +
+         "잡히고 12월이 있는 것처럼 보였을 구간입니다." },
+];
+const missingAt = d => MISSING.find(m => d >= m.from && d <= m.to);
+const $ = s => document.querySelector(s);
+const NS = "http://www.w3.org/2000/svg";
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmt = n => n.toLocaleString("ko-KR");
+const el = (t, a = {}) => { const e = document.createElementNS(NS, t);
+  for (const k in a) e.setAttribute(k, a[k]); return e; };
+
+/* ── 상태 ─────────────────────────────────────────── */
+const GUS = [...new Set(D.stations.map(s => s.g))].sort();
+const TYPES = ["출퇴근형", "여가형", "혼합/생활형", "판정 불가"];
+const state = { from: 0, to: D.months.length - 1, gu: new Set(GUS), type: new Set(TYPES),
+                minRent: 0, q: "", sel: null, sortK: "npd", sortAsc: false };
+
+/* ── 메타 ─────────────────────────────────────────── */
+$("#mTrips").textContent = fmt(D.meta.totalTrips);
+$("#mPeriod").textContent = D.meta.period[0] + " ~ " + D.meta.period[1];
+$("#mObs").textContent = D.meta.obsDays;
+$("#mSt").textContent = fmt(D.stations.length);
+$("#mGen").textContent = D.meta.generated;
+
+/* ── 필터 UI ──────────────────────────────────────── */
+const optHTML = D.months.map((m, i) => `<option value="${i}">${m}</option>`).join("");
+$("#mFrom").innerHTML = optHTML; $("#mTo").innerHTML = optHTML;
+$("#mFrom").value = 0; $("#mTo").value = D.months.length - 1;
+const mkChips = (host, items, set) => {
+  host.innerHTML = "";
+  items.forEach(v => { const b = document.createElement("button");
+    b.className = "chip"; b.textContent = v; b.setAttribute("aria-pressed", "true");
+    b.onclick = () => { set.has(v) ? set.delete(v) : set.add(v);
+      b.setAttribute("aria-pressed", set.has(v)); render(); };
+    host.appendChild(b); });
+};
+mkChips($("#guChips"), GUS, state.gu);
+mkChips($("#typeChips"), TYPES, state.type);
+$("#mFrom").onchange = e => { state.from = +e.target.value;
+  if (state.from > state.to) { state.to = state.from; $("#mTo").value = state.to; } render(); };
+$("#mTo").onchange = e => { state.to = +e.target.value;
+  if (state.to < state.from) { state.from = state.to; $("#mFrom").value = state.from; } render(); };
+$("#minRent").oninput = e => { state.minRent = +e.target.value;
+  $("#minLabel").textContent = fmt(state.minRent); render(); };
+$("#q").oninput = e => { state.q = e.target.value.trim().toLowerCase(); render(); };
+$("#reset").onclick = () => { state.from = 0; state.to = D.months.length - 1;
+  GUS.forEach(g => state.gu.add(g)); TYPES.forEach(t => state.type.add(t));
+  state.minRent = 0; state.q = ""; state.sel = null;
+  $("#mFrom").value = 0; $("#mTo").value = D.months.length - 1;
+  $("#minRent").value = 0; $("#minLabel").textContent = "0"; $("#q").value = "";
+  document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", "true")); render(); };
+
+/* ── 툴팁 ─────────────────────────────────────────── */
+const tip = $("#tip");
+const showTip = (e, html) => { tip.innerHTML = html; tip.style.opacity = 1;
+  const p = 14; let x = e.clientX + p, y = e.clientY + p;
+  const r = tip.getBoundingClientRect();
+  if (x + r.width > innerWidth - 8) x = e.clientX - r.width - p;
+  if (y + r.height > innerHeight - 8) y = e.clientY - r.height - p;
+  tip.style.left = x + "px"; tip.style.top = y + "px"; };
+const hideTip = () => tip.style.opacity = 0;
+
+/* ── 필터 적용 ────────────────────────────────────── */
+function daysInRange() { let d = 0;
+  for (let i = state.from; i <= state.to; i++) d += D.daysPerMonth[i]; return d || 1; }
+
+function filtered() {
+  const days = daysInRange();
+  return D.stations.map(s => {
+    const [ra, ba] = D.monthly[s.id] || [[], []];
+    let r = 0, b = 0;
+    for (let i = state.from; i <= state.to; i++) { r += ra[i] || 0; b += ba[i] || 0; }
+    return { ...s, r, b, no: r - b, npd: (r - b) / days, rn: s.ri - s.ro };
+  }).filter(s => state.gu.has(s.g) && state.type.has(s.t) && s.r >= state.minRent &&
+    (!state.q || s.n.toLowerCase().includes(state.q) || s.id.toLowerCase().includes(state.q)));
+}
+
+/* ── 그리기 헬퍼 ──────────────────────────────────── */
+function frame(svg, m) { svg.innerHTML = "";
+  const W = svg.clientWidth || 600, H = +svg.getAttribute("height");
+  return { W, H, x0: m.l, x1: W - m.r, y0: m.t, y1: H - m.b, svg }; }
+const sx = (v, d0, d1, a, b) => a + (v - d0) / ((d1 - d0) || 1) * (b - a);
+function yAxis(g, d0, d1, ticks = 4, f = v => fmt(Math.round(v))) {
+  for (let i = 0; i <= ticks; i++) { const v = d0 + (d1 - d0) * i / ticks;
+    const y = sx(v, d0, d1, g.y1, g.y0);
+    g.svg.appendChild(el("line", { x1: g.x0, x2: g.x1, y1: y, y2: y, class: "gl" }));
+    const t = el("text", { x: g.x0 - 7, y: y + 3.5, class: "ax", "text-anchor": "end" });
+    t.textContent = f(v); g.svg.appendChild(t); } }
+
+/* ── 1) 일별 ──────────────────────────────────────── */
+function drawDaily() {
+  const g = frame($("#cDaily"), { l: 52, r: 12, t: 10, b: 24 });
+  const vals = D.daily, n = vals.length;
+  const max = Math.max(...vals.filter(v => v != null)) * 1.05;
+  yAxis(g, 0, max);
+  const fromD = D.months[state.from] + "-01", toD = D.months[state.to] + "-32";
+  const inSel = i => { const d = D.dailyDates[i]; return d >= fromD && d <= toD; };
+  // 결측 구간 음영
+  let runStart = null;
+  vals.forEach((v, i) => { if (v == null && runStart === null) runStart = i;
+    if ((v != null || i === n - 1) && runStart !== null) {
+      const x1 = sx(runStart, 0, n - 1, g.x0, g.x1), x2 = sx(i, 0, n - 1, g.x0, g.x1);
+      const band = el("rect", { x: x1, y: g.y0, width: Math.max(x2 - x1, 1.5),
+        height: g.y1 - g.y0, fill: cssv("--grid"), opacity: .55 });
+      band.appendChild(el("title")).textContent = "데이터 결측 구간 — 마우스를 올리면 근거가 표시됩니다";
+      g.svg.appendChild(band); runStart = null; } });
+  // 선 (결측에서 끊기)
+  const seg = (test, color, w, op) => { let d = "", pen = false;
+    vals.forEach((v, i) => { if (v == null || !test(i)) { pen = false; return; }
+      const X = sx(i, 0, n - 1, g.x0, g.x1), Y = sx(v, 0, max, g.y1, g.y0);
+      d += (pen ? "L" : "M") + X.toFixed(1) + " " + Y.toFixed(1) + " "; pen = true; });
+    g.svg.appendChild(el("path", { d, fill: "none", stroke: color, "stroke-width": w, opacity: op })); };
+  seg(() => true, cssv("--s1"), 1, .28);
+  seg(inSel, cssv("--s1"), 1.4, 1);
+  // 7일 이동평균
+  const ma = vals.map((_, i) => { if (i < 6) return null;
+    const w = vals.slice(i - 6, i + 1); return w.some(v => v == null) ? null
+      : w.reduce((a, b) => a + b, 0) / 7; });
+  let d = "", pen = false;
+  ma.forEach((v, i) => { if (v == null) { pen = false; return; }
+    const X = sx(i, 0, n - 1, g.x0, g.x1), Y = sx(v, 0, max, g.y1, g.y0);
+    d += (pen ? "L" : "M") + X.toFixed(1) + " " + Y.toFixed(1) + " "; pen = true; });
+  g.svg.appendChild(el("path", { d, fill: "none", stroke: cssv("--s2"), "stroke-width": 2 }));
+  // x축 라벨
+  [0, Math.floor(n / 3), Math.floor(2 * n / 3), n - 1].forEach(i => {
+    const t = el("text", { x: sx(i, 0, n - 1, g.x0, g.x1), y: g.y1 + 16, class: "ax",
+      "text-anchor": i === 0 ? "start" : i === n - 1 ? "end" : "middle" });
+    t.textContent = D.dailyDates[i].slice(0, 7); g.svg.appendChild(t); });
+  // 호버
+  const hit = el("rect", { x: g.x0, y: g.y0, width: g.x1 - g.x0, height: g.y1 - g.y0,
+    fill: "transparent" });
+  const cross = el("line", { y1: g.y0, y2: g.y1, stroke: cssv("--base"), "stroke-width": 1, opacity: 0 });
+  g.svg.appendChild(cross); g.svg.appendChild(hit);
+  hit.onmousemove = e => { const r = g.svg.getBoundingClientRect();
+    const i = Math.round(sx(e.clientX - r.left, g.x0, g.x1, 0, n - 1));
+    if (i < 0 || i >= n) return; const X = sx(i, 0, n - 1, g.x0, g.x1);
+    cross.setAttribute("x1", X); cross.setAttribute("x2", X); cross.setAttribute("opacity", 1);
+    const day = D.dailyDates[i];
+    if (vals[i] != null) { showTip(e, `<b>${day}</b><br>${fmt(vals[i])}건`); return; }
+    const m = missingAt(day);
+    showTip(e, m
+      ? `<b>${day} — 데이터 없음</b>
+         <div style="margin:5px 0 3px;color:var(--muted)">${m.from} ~ ${m.to} (${m.days}일)</div>
+         <div style="font-weight:600;margin-bottom:3px">${m.title}</div>
+         <div style="margin-bottom:4px">${m.why}</div>
+         <div style="color:var(--ink2);border-top:1px solid var(--grid);padding-top:4px">
+           ${m.how}</div>`
+      : `<b>${day}</b><br>데이터 없음 (사유 미확인)`); };
+  hit.onmouseleave = () => { cross.setAttribute("opacity", 0); hideTip(); };
+}
+
+/* ── 2) 랭킹 ──────────────────────────────────────── */
+function drawRank(rows) {
+  const g = frame($("#cRank"), { l: 138, r: 54, t: 8, b: 22 });
+  const N = 9;
+  const top = [...rows].sort((a, b) => b.npd - a.npd).slice(0, N);
+  const bot = [...rows].sort((a, b) => a.npd - b.npd).slice(0, N).reverse();
+  const sel = [...top, ...bot];
+  if (!sel.length) return;
+  const lim = Math.max(...sel.map(s => Math.abs(s.npd))) * 1.25 || 1;
+  const zx = sx(0, -lim, lim, g.x0, g.x1);
+  const bh = (g.y1 - g.y0) / sel.length;
+  g.svg.appendChild(el("line", { x1: zx, x2: zx, y1: g.y0, y2: g.y1, class: "bl" }));
+  sel.forEach((s, i) => {
+    const y = g.y0 + i * bh + bh * .16, h = bh * .68;
+    const X = sx(s.npd, -lim, lim, g.x0, g.x1);
+    const r = el("rect", { x: Math.min(zx, X), y, width: Math.max(Math.abs(X - zx), 1.5),
+      height: h, rx: 3, fill: s.npd > 0 ? cssv("--pos") : cssv("--neg"),
+      opacity: state.sel && state.sel !== s.id ? .38 : 1, style: "cursor:pointer" });
+    r.onmousemove = e => showTip(e, `<b>${s.n}</b><br>${s.g} · ${s.t}<br>
+      대여 ${fmt(s.r)} / 반납 ${fmt(s.b)}<br>순유출 <b>${s.npd >= 0 ? "+" : ""}${s.npd.toFixed(2)}대/일</b>`);
+    r.onmouseleave = hideTip; r.onclick = () => { state.sel = s.id; render(); };
+    g.svg.appendChild(r);
+    const lb = el("text", { x: g.x0 - 8, y: y + h / 2 + 3.7, class: "ax", "text-anchor": "end" });
+    lb.textContent = s.n.length > 16 ? s.n.slice(0, 16) + "…" : s.n; g.svg.appendChild(lb);
+    const vl = el("text", { y: y + h / 2 + 3.7, class: "ax",
+      x: s.npd > 0 ? X + 5 : X - 5, "text-anchor": s.npd > 0 ? "start" : "end" });
+    vl.textContent = (s.npd >= 0 ? "+" : "") + s.npd.toFixed(2); g.svg.appendChild(vl);
+  });
+}
+
+/* ── 3) 지도 (OpenStreetMap 타일 + SVG 오버레이) ─────────────────────
+   외부 라이브러리 없이 웹 메르카토르 투영을 직접 계산한다.
+   · 타일 좌표계: 줌 Z 에서 세계 전체가 256 * 2^Z 픽셀
+   · 경도 → x 는 선형, 위도 → y 는 메르카토르 변환(고위도일수록 늘어남)
+   타일 이미지가 차단되는 환경(게시용 아티팩트 등)에서는 타일만 비고
+   점·툴팁·클릭은 그대로 동작한다. */
+const TILE = 256;
+const merc = {
+  x: (lon, z) => (lon + 180) / 360 * TILE * 2 ** z,
+  y: (lat, z) => { const s_ = Math.sin(lat * Math.PI / 180);
+    return (0.5 - Math.log((1 + s_) / (1 - s_)) / (4 * Math.PI)) * TILE * 2 ** z; },
+};
+let mapZoom = 12, mapCenter = null;
+
+function drawMap(rows) {
+  const wrap = $("#mapWrap"), tiles = $("#mapTiles"), svg = $("#cMap");
+  const W = wrap.clientWidth || 560, H = wrap.clientHeight || 430;
+  svg.innerHTML = ""; tiles.innerHTML = "";
+  if (!rows.length) return;
+
+  if (!mapCenter) {
+    const la = rows.map(s => s.la), lo = rows.map(s => s.lo);
+    mapCenter = { la: (Math.min(...la) + Math.max(...la)) / 2,
+                  lo: (Math.min(...lo) + Math.max(...lo)) / 2 };
+  }
+  const z = mapZoom;
+  const cx = merc.x(mapCenter.lo, z), cy = merc.y(mapCenter.la, z);
+  const ox = cx - W / 2, oy = cy - H / 2;          // 화면 좌상단의 세계 픽셀 좌표
+
+  // 타일 배치
+  const t0x = Math.floor(ox / TILE), t1x = Math.floor((ox + W) / TILE);
+  const t0y = Math.floor(oy / TILE), t1y = Math.floor((oy + H) / TILE);
+  const n = 2 ** z;
+  for (let tx = t0x; tx <= t1x; tx++) for (let ty = t0y; ty <= t1y; ty++) {
+    if (ty < 0 || ty >= n) continue;
+    const img = document.createElement("img");
+    img.loading = "lazy"; img.alt = "";
+    img.src = `https://tile.openstreetmap.org/${z}/${((tx % n) + n) % n}/${ty}.png`;
+    img.style.left = (tx * TILE - ox) + "px";
+    img.style.top = (ty * TILE - oy) + "px";
+    img.onerror = () => img.remove();             // 차단된 환경에서는 조용히 사라진다
+    tiles.appendChild(img);
+  }
+
+  // 점 찍기
+  const sorted = rows.map(s => Math.abs(s.npd)).sort((a, b) => a - b);
+  const lim = sorted[Math.floor(sorted.length * .97)] || 1;
+  const maxR = Math.max(...rows.map(s => s.r)) || 1;
+  const col = v => { const t = Math.max(-1, Math.min(1, v / lim));
+    return t > 0 ? `rgba(227,73,72,${.35 + .65 * t})` : `rgba(42,120,214,${.35 + .65 * -t})`; };
+  rows.forEach(s => {
+    const X = merc.x(s.lo, z) - ox, Y = merc.y(s.la, z) - oy;
+    if (X < -20 || X > W + 20 || Y < -20 || Y > H + 20) return;
+    const c = el("circle", { cx: X, cy: Y, r: 2.4 + Math.sqrt(s.r / maxR) * 8,
+      fill: col(s.npd), stroke: state.sel === s.id ? cssv("--ink") : "rgba(255,255,255,.85)",
+      "stroke-width": state.sel === s.id ? 2.4 : .8, style: "cursor:pointer" });
+    c.onmousemove = e => showTip(e, `<b>${s.n}</b><br>${s.g} · ${s.t}<br>
+      대여 ${fmt(s.r)}<br>순유출 <b>${s.npd >= 0 ? "+" : ""}${s.npd.toFixed(2)}대/일</b>`);
+    c.onmouseleave = hideTip;
+    c.onclick = () => { state.sel = s.id; render(); };
+    svg.appendChild(c);
+  });
+
+  const t = el("text", { x: 8, y: H - 10, class: "ax" });
+  t.textContent = `색 눈금 ±${lim.toFixed(2)}대/일에서 잘림 · 줌 ${z}`;
+  svg.appendChild(t);
+}
+$("#zIn").onclick = () => { mapZoom = Math.min(15, mapZoom + 1); render(); };
+$("#zOut").onclick = () => { mapZoom = Math.max(10, mapZoom - 1); render(); };
+// 드래그로 이동
+(() => { const wrap = $("#mapWrap"); let drag = null;
+  wrap.addEventListener("mousedown", e => { if (e.target.tagName === "circle") return;
+    drag = { x: e.clientX, y: e.clientY, la: mapCenter.la, lo: mapCenter.lo };
+    wrap.style.cursor = "grabbing"; });
+  addEventListener("mousemove", e => { if (!drag) return;
+    const z = mapZoom, W = 2 ** z * TILE;
+    mapCenter.lo = drag.lo - (e.clientX - drag.x) / W * 360;
+    const y0 = merc.y(drag.la, z) + (drag.y - e.clientY);
+    const t = Math.PI - 2 * Math.PI * y0 / W;
+    mapCenter.la = 180 / Math.PI * Math.atan(0.5 * (Math.exp(t) - Math.exp(-t)));
+    drawMap(filtered()); });
+  addEventListener("mouseup", () => { drag = null; wrap.style.cursor = ""; });
+})();
+
+/* ── 4) 프로파일 ──────────────────────────────────── */
+function drawProfile(rows) {
+  const s = rows.find(x => x.id === state.sel) || [...rows].sort((a, b) => b.npd - a.npd)[0];
+  if (!s) { $("#cProf").innerHTML = ""; $("#cCum").innerHTML = ""; return; }
+  state.sel = s.id;
+  $("#pfTitle").textContent = `${s.n} — 평일 시간대 프로파일 (순유출 ${s.npd >= 0 ? "+" : ""}${s.npd.toFixed(2)}대/일)`;
+  const [rr, bb] = D.profile[s.id] || [Array(24).fill(0), Array(24).fill(0)];
+
+  const g = frame($("#cProf"), { l: 42, r: 10, t: 10, b: 24 });
+  const mx = Math.max(...rr, ...bb, .5) * 1.15;
+  yAxis(g, 0, mx, 3, v => v.toFixed(1));
+  const line = (arr, color) => { let d = "";
+    arr.forEach((v, i) => { d += (i ? "L" : "M") + sx(i, 0, 23, g.x0, g.x1).toFixed(1) + " "
+      + sx(v, 0, mx, g.y1, g.y0).toFixed(1) + " "; });
+    g.svg.appendChild(el("path", { d, fill: "none", stroke: color, "stroke-width": 2 })); };
+  line(rr, cssv("--s1")); line(bb, cssv("--s3"));
+  [0, 6, 12, 18, 23].forEach(i => { const t = el("text", { x: sx(i, 0, 23, g.x0, g.x1),
+    y: g.y1 + 16, class: "ax", "text-anchor": "middle" }); t.textContent = i + "시";
+    g.svg.appendChild(t); });
+  const hit = el("rect", { x: g.x0, y: g.y0, width: g.x1 - g.x0, height: g.y1 - g.y0, fill: "transparent" });
+  hit.onmousemove = e => { const r = g.svg.getBoundingClientRect();
+    const i = Math.round(sx(e.clientX - r.left, g.x0, g.x1, 0, 23));
+    if (i < 0 || i > 23) return;
+    showTip(e, `<b>${i}시</b><br>대여 ${rr[i].toFixed(2)}대<br>반납 ${bb[i].toFixed(2)}대<br>
+      순유출 ${(rr[i] - bb[i]).toFixed(2)}대`); };
+  hit.onmouseleave = hideTip; g.svg.appendChild(hit);
+
+  const g2 = frame($("#cCum"), { l: 42, r: 10, t: 10, b: 24 });
+  const cum = []; let acc = 0;
+  for (let i = 0; i < 24; i++) { acc += bb[i] - rr[i]; cum.push(acc); }
+  const lo = Math.min(0, ...cum) * 1.2, hi = Math.max(0, ...cum) * 1.2 || 1;
+  yAxis(g2, lo, hi, 4, v => v.toFixed(1));
+  const zy = sx(0, lo, hi, g2.y1, g2.y0);
+  g2.svg.appendChild(el("line", { x1: g2.x0, x2: g2.x1, y1: zy, y2: zy, class: "bl" }));
+  let d = "";
+  cum.forEach((v, i) => { d += (i ? "L" : "M") + sx(i, 0, 23, g2.x0, g2.x1).toFixed(1) + " "
+    + sx(v, lo, hi, g2.y1, g2.y0).toFixed(1) + " "; });
+  g2.svg.appendChild(el("path", { d, fill: "none", stroke: cssv("--s2"), "stroke-width": 2.2 }));
+  const mi = cum.indexOf(Math.min(...cum));
+  g2.svg.appendChild(el("circle", { cx: sx(mi, 0, 23, g2.x0, g2.x1),
+    cy: sx(cum[mi], lo, hi, g2.y1, g2.y0), r: 4.5, fill: cssv("--pos") }));
+  // 최저점이 축 끝에 붙으면 라벨이 잘리므로 앵커를 뒤집는다
+  const lx = sx(mi, 0, 23, g2.x0, g2.x1);
+  const anchor = mi >= 19 ? "end" : mi <= 3 ? "start" : "middle";
+  const lab = el("text", { x: lx + (anchor === "end" ? 4 : anchor === "start" ? -4 : 0),
+    class: "ax", "text-anchor": anchor,
+    y: sx(cum[mi], lo, hi, g2.y1, g2.y0) - 9, fill: cssv("--pos") });
+  lab.textContent = `최저 ${mi}시 ${cum[mi].toFixed(1)}대`; g2.svg.appendChild(lab);
+  [0, 6, 12, 18, 23].forEach(i => { const t = el("text", { x: sx(i, 0, 23, g2.x0, g2.x1),
+    y: g2.y1 + 16, class: "ax", "text-anchor": "middle" }); t.textContent = i + "시";
+    g2.svg.appendChild(t); });
+}
+
+/* ── 5) KPI · 표 ──────────────────────────────────── */
+function drawKpis(rows) {
+  const days = daysInRange();
+  const tot = rows.reduce((a, s) => a + s.r, 0);
+  const worst = [...rows].sort((a, b) => b.npd - a.npd)[0];
+  const drain = rows.filter(s => s.npd > 0.3).length;
+  const k = [
+    ["선택 대여소", fmt(rows.length) + "개", `전체 ${fmt(D.stations.length)}개 중`],
+    ["기간 총 대여", fmt(tot) + "건", `${D.months[state.from]} ~ ${D.months[state.to]} · ${days}일`],
+    ["일평균 대여", fmt(Math.round(tot / days)) + "건", "관측일 기준"],
+    ["하루 0.3대 이상 새는 곳", fmt(drain) + "개", rows.length ? (drain / rows.length * 100).toFixed(1) + "%" : "-"],
+    ["최대 순유출", worst ? "+" + worst.npd.toFixed(2) + "대/일" : "-", worst ? worst.n.slice(0, 16) : ""],
+  ];
+  $("#kpis").innerHTML = k.map(([a, b, c]) =>
+    `<div class="kpi"><div class="k">${a}</div><div class="v">${b}</div><div class="n">${c}</div></div>`).join("");
+}
+
+function drawTable(rows) {
+  const k = state.sortK, asc = state.sortAsc;
+  const sorted = [...rows].sort((a, b) => { const x = a[k], y = b[k];
+    const c = typeof x === "string" ? x.localeCompare(y) : (x ?? -1e9) - (y ?? -1e9);
+    return asc ? c : -c; });
+  $("#tblCount").textContent = `(${fmt(rows.length)}개)`;
+  $("#tbl tbody").innerHTML = sorted.slice(0, 300).map(s => `<tr data-id="${s.id}"
+    aria-selected="${s.id === state.sel}">
+    <td>${s.id}</td><td>${s.n}</td><td>${s.g}</td>
+    <td>${fmt(s.r)}</td><td>${fmt(s.b)}</td>
+    <td class="${s.no > 0 ? "pos" : "neg"}">${s.no >= 0 ? "+" : ""}${fmt(s.no)}</td>
+    <td class="${s.npd > 0 ? "pos" : "neg"}">${s.npd >= 0 ? "+" : ""}${s.npd.toFixed(2)}</td>
+    <td>${s.cpi ?? "-"}</td><td>${s.wr ?? "-"}</td><td>${s.t}</td>
+    <td>${s.rn >= 0 ? "+" : ""}${fmt(s.rn)}</td></tr>`).join("");
+  $("#tbl tbody").querySelectorAll("tr").forEach(tr =>
+    tr.onclick = () => { state.sel = tr.dataset.id; render(); });
+}
+document.querySelectorAll("#tbl th").forEach(th => th.onclick = () => {
+  const k = th.dataset.k;
+  if (state.sortK === k) state.sortAsc = !state.sortAsc;
+  else { state.sortK = k; state.sortAsc = false; } render(); });
+
+/* ── 렌더 ─────────────────────────────────────────── */
+function render() { const rows = filtered();
+  drawKpis(rows); drawDaily(); drawRank(rows); drawMap(rows); drawProfile(rows); drawTable(rows); }
+render();
+addEventListener("resize", () => render());
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => render());
+</script>

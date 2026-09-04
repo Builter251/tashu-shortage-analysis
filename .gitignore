@@ -1,0 +1,26 @@
+# ── 원본 데이터 ───────────────────────────────────────────────────────────
+# 주의: 폴더명이 한글이고 macOS 에서는 NFD(자모 분리)로 저장된다.
+#       한글 패턴은 매칭이 어긋나므로 '전부 무시 후 필요한 것만 되살리는' 방식을 쓴다.
+data/*
+!data/processed/
+data/processed/*
+!data/processed/*.csv
+!data/processed/dashboard_data.json
+
+# ── 실시간 수집 원본 ──────────────────────────────────────────────────────
+realtime/storage/*
+realtime/.env
+
+# ── 파이썬 ────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+
+# ── 빌드 산출물 (index.html / dashboard.html 은 배포에 필요하므로 포함) ──
+build/
+images/_to_delete/
+
+# ── 기타 ──────────────────────────────────────────────────────────────────
+.DS_Store
+.PLAN.bak
