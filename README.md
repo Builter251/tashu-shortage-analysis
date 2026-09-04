@@ -39,7 +39,8 @@ python3 src/verify_02.py        # 재배치 로직 교차 검증 (pandas 독립 
 python3 src/03_analyze.py       # 지표 계산 및 그림 01~07
 python3 src/04_forecast.py      # 재고 소진 진단 · 예측 백테스트 · 그림 08~10
 python3 src/07_robustness.py    # 반례·민감도 분석 · 그림 11
-python3 src/verify_report.py    # REPORT.md 인용 수치 23건 자동 재검증
+python3 src/verify_report.py    # REPORT.md 인용 수치 32건 자동 재검증
+python3 src/check_mission.py    # 미션 요구사항·평가 항목 32개 충족 점검
 python3 src/06_export_dashboard.py && python3 src/build_dashboard.py   # 대시보드 재생성
 
 # (선택) 실시간 검증 — API 키 없이도 코드 경로 점검 가능
