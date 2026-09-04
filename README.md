@@ -1,12 +1,17 @@
 # 타슈 대여소 자전거 부족 분석 (Codyssey M1-1)
 
+### 🔗 [대시보드 바로 보기 — builter251.github.io/tashu-shortage-analysis](https://builter251.github.io/tashu-shortage-analysis/)
+
 대전 공영자전거 **타슈**의 대여 이력 19개월치를 이용해
 "어느 대여소가, 언제, 왜 자전거가 부족한가"를 분석한다.
 
 - 설계 문서: [`PLAN.md`](PLAN.md)
 - 적재 단계 데이터 품질 진단: [`reports/01_ingest_findings.md`](reports/01_ingest_findings.md)
 - **최종 리포트: [`REPORT.md`](REPORT.md)** ★
+- **용어집: [`GLOSSARY.md`](GLOSSARY.md)** — 이 프로젝트의 분석 내용을 예시로 삼은 데이터·통계 용어 56개
 - 단계별 상세 기록: [`reports/`](reports/)
+- 대시보드: [`dashboard.html`](dashboard.html) (로컬 실행) / [배포 URL](https://builter251.github.io/tashu-shortage-analysis/)
+- 실시간 수집 모듈(독립): [`realtime/`](realtime/) — API 키 없이도 코드 경로 점검 가능
 
 ## 데이터 출처
 
@@ -32,6 +37,11 @@ python3 src/verify_02.py        # 재배치 로직 교차 검증 (pandas 독립 
 python3 src/03_analyze.py       # 지표 계산 및 그림 01~07
 python3 src/04_forecast.py      # 재고 소진 진단 · 예측 백테스트 · 그림 08~10
 python3 src/verify_report.py    # REPORT.md 인용 수치 23건 자동 재검증
+python3 src/06_export_dashboard.py && python3 src/build_dashboard.py   # 대시보드 재생성
+
+# (선택) 실시간 검증 — API 키 없이도 코드 경로 점검 가능
+python3 realtime/collect.py --selftest
+python3 src/05_validate_with_realtime.py
 ```
 
 실시간 수집 모듈은 독립이다 → [`realtime/README.md`](realtime/README.md)

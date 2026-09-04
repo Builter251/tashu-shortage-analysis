@@ -475,7 +475,7 @@ tashu-shortage-analysis/
 | **5. 부족 진단** ✅ | 순유출 랭킹·재고 곡선·지도·유형 분류 → 그림 03·04·05·06 | **완료** (재고 소진 구간 정량화는 5단계로 이월) |
 | **6. 예측** ✅ | 베이스라인 사다리 + 백테스트 + 재고 소진 진단 → 그림 08·09·10 | **완료** → `reports/04_forecast_findings.md` |
 | **7. 리포트** ✅ | REPORT.md 작성 (인사이트 6개 + 빗나간 가설 1개, 3층 서술, 그림 10개) | **완료** — 수치 자동 검증 23건 전건 일치 |
-| **8. 보너스** | 대시보드(Streamlit 등) + OpenAPI 수집기 | 배포 URL 또는 시연 |
+| **8. 보너스** ✅ | 대시보드(자체 완결 HTML + OSM 지도) · OpenAPI 수집 모듈 | **완료** — 배포 URL: https://builter251.github.io/tashu-shortage-analysis/ |
 | **9. 리허설** | 아래 예상 질문에 소리 내어 답해보기 | 막힘 없이 5분 설명 |
 
 각 단계 끝에서 **한 문장으로 "이 단계에서 알게 된 것"** 을 메모해 두면 리포트와 발표가 저절로 만들어진다.
@@ -547,9 +547,12 @@ tashu-shortage-analysis/
    예측은 '항상 0' 기준선을 MAE로 못 이긴다 — RMSE로 봐야 한다 (`reports/04_forecast_findings.md`)
 5. ~~6단계 `REPORT.md`~~ ✅ — 인사이트 6개 + 빗나간 가설 1개, 그림 10개, AI 사용 로그, 함정 9건 기록.
    `src/verify_report.py` 로 리포트 인용 수치 23건을 산출물에서 재계산해 **전건 일치** 확인
-6. **남은 것 (보너스)**
-   - 대시보드(Streamlit 등) 또는 스크린샷 세트
-   - 타슈 OpenAPI 키 발급 시 `realtime/collect.py` 가동 → 2주 축적 후 검증 4종
+6. ~~보너스~~ ✅
+   - 대시보드 완성 및 **GitHub Pages 배포**: https://builter251.github.io/tashu-shortage-analysis/
+   - `realtime/` 수집 모듈 완성 — API 명세 확정, 키 없이 셀프테스트 통과
+   - `GLOSSARY.md` — 이 프로젝트를 예시로 삼은 용어집 56항목
+7. **남은 것**
+   - 타슈 OpenAPI 키 발급되면 `realtime/collect.py --loop` 가동 → 14일 축적 후 검증 5종
    - 동료평가 리허설 (14장 예상 질문 소리 내어 답하기)
 4. 타슈 OpenAPI 키가 나오면 `realtime/collect.py` 를 **분석 진도와 무관하게 즉시 가동** (검증에 2주 축적 필요).
    특히 **관제센터에 실제 자전거가 거치돼 있는지** 확인하면 3장의 가설 A/B가 판별된다.
