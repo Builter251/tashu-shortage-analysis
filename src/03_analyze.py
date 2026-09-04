@@ -22,6 +22,7 @@ import time
 from pathlib import Path
 
 import duckdb
+import matplotlib as mpl
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -181,12 +182,15 @@ ax.barh(range(len(vals)), vals, color=colors, height=0.72)
 ax.axvline(0, color=vs.BASELINE, lw=1)
 ax.set_yticks(range(len(vals))); ax.set_yticklabels(labels, fontsize=8.5, color=vs.INK2)
 ax.set_xlim(-lim * 1.35, lim * 1.35)
+# 부호 대신 방향(순유출/순유입)으로 읽히게 하므로 막대 값은 절대 크기로 적는다
 for i, v in enumerate(vals):
-    ax.text(v + (0.06 * lim if v > 0 else -0.06 * lim), i, f"{v:+.2f}",
+    ax.text(v + (0.06 * lim if v > 0 else -0.06 * lim), i, f"{abs(v):.2f}",
             va="center", ha="left" if v > 0 else "right", fontsize=8, color=vs.INK2)
-ax.set_title("대여소별 일평균 순유출 — 상위 15(빨강) vs 하위 15(파랑)")
-vs.subtitle(ax, "순유출 = 대여 − 반납. 양수(빨강)는 자전거가 빠져나가기만 하는 곳, 음수(파랑)는 쌓이기만 하는 곳.")
-ax.set_xlabel("일평균 순유출 (대/일)"); ax.grid(axis="x")
+ax.set_title("대여소별 일평균 순유출·순유입 — 각 상위 15")
+vs.subtitle(ax, "대여 − 반납이 양수면 순유출(빨강, 자전거가 빠짐), 음수면 순유입(파랑, 자전거가 쌓임). 막대 값은 절대 크기.")
+# 눈금도 부호를 지운다. 방향은 색과 좌우로 읽고, 숫자는 크기만 나타낸다.
+ax.xaxis.set_major_formatter(mpl.ticker.FuncFormatter(lambda v, _: f"{abs(v):g}"))
+ax.set_xlabel("←  순유입 (대/일)                    순유출 (대/일)  →"); ax.grid(axis="x")
 vs.source(fig); fig.savefig(IMG / "03_netflow_ranking.png"); plt.close(fig)
 
 # ============================================================ 그림 04 재고 프로파일
@@ -255,11 +259,11 @@ for (idx, r), off in zip(pd.concat([top.head(3), bot.head(3)]).iterrows(), offse
                 arrowprops=dict(arrowstyle="-", lw=0.7, color=vs.MUTED,
                                 shrinkA=0, shrinkB=3))
 cb = fig.colorbar(sc, ax=ax, fraction=0.035, pad=0.02)
-cb.set_label("일평균 순유출 (대/일)", fontsize=9, color=vs.INK2)
+cb.set_label("일평균 (대/일) — 위쪽 빨강 순유출 / 아래쪽 파랑 순유입", fontsize=9, color=vs.INK2)
 cb.outline.set_visible(False)
 fig.text(0.005, -0.035, f"색 눈금은 ±{lim:.1f}대/일에서 잘랐다(상위 2% 극단값이 나머지를 눌러버리는 것을 막기 위함).",
          fontsize=8, color=vs.MUTED, ha="left", va="top")
-ax.set_title("대여소 순유출 지도 — 빨강은 비는 곳, 파랑은 쌓이는 곳")
+ax.set_title("대여소 순유출·순유입 지도 — 빨강은 비는 곳(순유출), 파랑은 쌓이는 곳(순유입)")
 vs.subtitle(ax, "점 크기는 총 이용량. 좌표는 원본의 X(위도)·Y(경도)를 바로잡아 사용했다.")
 ax.set_xlabel("경도"); ax.set_ylabel("위도"); ax.grid(alpha=0.5)
 ax.set_aspect(1 / np.cos(np.radians(36.35)))

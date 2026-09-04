@@ -159,8 +159,9 @@ tbody tr[aria-selected="true"]{background:var(--chip);box-shadow:inset 2px 0 0 v
   <div class="grid2">
     <div class="card">
       <h2>일평균 순유출 랭킹</h2>
-      <p class="cap">순유출 = 대여 − 반납. <span class="pos">빨강</span>은 빠져나가기만 하는 곳,
-        <span class="neg">파랑</span>은 쌓이기만 하는 곳. 막대를 클릭하면 아래 프로파일이 바뀝니다.</p>
+      <p class="cap">대여 − 반납이 <b>양수면 순유출</b>, 자전거가 빠져나가는 곳입니다(<span class="pos">빨강</span>).
+        <b>음수면 순유입</b>, 자전거가 쌓이는 곳입니다(<span class="neg">파랑</span>).
+        막대를 클릭하면 아래 프로파일이 바뀝니다.</p>
       <svg id="cRank" height="430" role="img" aria-label="대여소별 순유출 랭킹"></svg>
     </div>
     <div class="card">
@@ -182,7 +183,7 @@ tbody tr[aria-selected="true"]{background:var(--chip);box-shadow:inset 2px 0 0 v
 
   <div class="card">
     <h2 id="pfTitle">선택 대여소의 평일 시간대 프로파일</h2>
-    <p class="cap">평일 하루 평균. 파랑이 반납보다 위면 자전거가 나가는 시간, 아래면 들어오는 시간입니다.
+    <p class="cap">평일 하루 평균. 대여선이 반납선보다 위면 그 시간은 <b>순유출</b>, 아래면 <b>순유입</b>입니다.
       아래 누적선이 0 밑으로 내려간 구간이 재고가 줄어드는 시간대입니다. <span style="color:var(--muted)">(전체 기간 평균 기준)</span></p>
     <div class="grid2">
       <svg id="cProf" height="230" role="img" aria-label="시간대별 대여·반납"></svg>
@@ -198,9 +199,9 @@ tbody tr[aria-selected="true"]{background:var(--chip);box-shadow:inset 2px 0 0 v
     <p class="cap">머리글을 클릭하면 정렬됩니다. 행을 클릭하면 위 프로파일이 바뀝니다.</p>
     <div class="scroll"><table id="tbl"><thead><tr>
       <th data-k="id">ID</th><th data-k="n">대여소</th><th data-k="g">구</th>
-      <th data-k="r">대여</th><th data-k="b">반납</th><th data-k="no">순유출</th>
+      <th data-k="r">대여</th><th data-k="b">반납</th><th data-k="no">순유출/순유입 (누적)</th>
       <th data-k="npd">일평균</th><th data-k="cpi">CPI</th><th data-k="wr">WR</th>
-      <th data-k="t">유형</th><th data-k="rn">재배치 순유입</th>
+      <th data-k="t">유형</th><th data-k="rn">재배치</th>
     </tr></thead><tbody></tbody></table></div>
   </div>
 
@@ -236,6 +237,15 @@ const $ = s => document.querySelector(s);
 const NS = "http://www.w3.org/2000/svg";
 const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const fmt = n => n.toLocaleString("ko-KR");
+/* 순유출은 부호로 방향을 나타내는 값이다. 화면에는 부호 대신 용어로 보여준다.
+   양수 → '순유출'(자전거가 빠져나감) · 음수 → '순유입'(자전거가 쌓임) · 0 → '균형' */
+const flow = v => v > 0 ? { t: "순유출", a: v, c: "pos" }
+               : v < 0 ? { t: "순유입", a: -v, c: "neg" }
+               : { t: "균형", a: 0, c: "" };
+const flowTxt = (v, d = 2, unit = "대/일") => { const f = flow(v);
+  return f.t === "균형" ? "균형 (0" + unit + ")" : `${f.t} ${f.a.toFixed(d)}${unit}`; };
+const flowInt = v => { const f = flow(v);
+  return f.t === "균형" ? "균형" : `${f.t} ${fmt(Math.round(f.a))}대`; };
 const el = (t, a = {}) => { const e = document.createElementNS(NS, t);
   for (const k in a) e.setAttribute(k, a[k]); return e; };
 
@@ -395,6 +405,11 @@ function drawRank(rows) {
   const zx = sx(0, -lim, lim, g.x0, g.x1);
   const bh = (g.y1 - g.y0) / sel.length;
   g.svg.appendChild(el("line", { x1: zx, x2: zx, y1: g.y0, y2: g.y1, class: "bl" }));
+  // 축 아래에 방향 안내 — 부호 대신 용어로 읽히게 한다
+  const axl = el("text", { x: zx - 8, y: g.y1 + 15, class: "ax", "text-anchor": "end" });
+  axl.textContent = "← 순유입 (자전거가 쌓임)"; g.svg.appendChild(axl);
+  const axr = el("text", { x: zx + 8, y: g.y1 + 15, class: "ax", "text-anchor": "start" });
+  axr.textContent = "순유출 (자전거가 빠짐) →"; g.svg.appendChild(axr);
   sel.forEach((s, i) => {
     const y = g.y0 + i * bh + bh * .16, h = bh * .68;
     const X = sx(s.npd, -lim, lim, g.x0, g.x1);
@@ -402,7 +417,8 @@ function drawRank(rows) {
       height: h, rx: 3, fill: s.npd > 0 ? cssv("--pos") : cssv("--neg"),
       opacity: state.sel && state.sel !== s.id ? .38 : 1, style: "cursor:pointer" });
     r.onmousemove = e => showTip(e, `<b>${s.n}</b><br>${s.g} · ${s.t}<br>
-      대여 ${fmt(s.r)} / 반납 ${fmt(s.b)}<br>순유출 <b>${s.npd >= 0 ? "+" : ""}${s.npd.toFixed(2)}대/일</b>`);
+      대여 ${fmt(s.r)} / 반납 ${fmt(s.b)}<br>
+      <b class="${flow(s.npd).c}">${flowTxt(s.npd)}</b> · 기간 누적 ${flowInt(s.no)}`);
     r.onmouseleave = hideTip; r.onclick = () => { state.sel = s.id; render(); };
     g.svg.appendChild(r);
     // 글자 수로 자르면 한글·영문 폭 차이 때문에 넘친다. 실제 렌더 폭을 재서 자른다.
@@ -421,7 +437,7 @@ function drawRank(rows) {
     if (anc === "end" && vx < g.x0 + 34) { vx = X + 5; anc = "start"; }
     if (anc === "start" && vx > g.x1 - 34) { vx = X - 5; anc = "end"; }
     const vl = el("text", { y: y + h / 2 + 3.7, class: "ax", x: vx, "text-anchor": anc });
-    vl.textContent = (s.npd >= 0 ? "+" : "") + s.npd.toFixed(2); g.svg.appendChild(vl);
+    vl.textContent = flow(s.npd).a.toFixed(2); g.svg.appendChild(vl);
   });
 }
 
@@ -482,14 +498,14 @@ function drawMap(rows) {
       fill: col(s.npd), stroke: state.sel === s.id ? cssv("--ink") : "rgba(255,255,255,.85)",
       "stroke-width": state.sel === s.id ? 2.4 : .8, style: "cursor:pointer" });
     c.onmousemove = e => showTip(e, `<b>${s.n}</b><br>${s.g} · ${s.t}<br>
-      대여 ${fmt(s.r)}<br>순유출 <b>${s.npd >= 0 ? "+" : ""}${s.npd.toFixed(2)}대/일</b>`);
+      대여 ${fmt(s.r)}<br><b class="${flow(s.npd).c}">${flowTxt(s.npd)}</b>`);
     c.onmouseleave = hideTip;
     c.onclick = () => { state.sel = s.id; render(); };
     svg.appendChild(c);
   });
 
   const t = el("text", { x: 8, y: H - 10, class: "ax" });
-  t.textContent = `색 눈금 ±${lim.toFixed(2)}대/일에서 잘림 · 줌 ${z}`;
+  t.textContent = `빨강=순유출 · 파랑=순유입 · 색 눈금 ${lim.toFixed(2)}대/일에서 잘림 · 줌 ${z}`;
   svg.appendChild(t);
 }
 $("#zIn").onclick = () => { mapZoom = Math.min(15, mapZoom + 1); render(); };
@@ -514,7 +530,7 @@ function drawProfile(rows) {
   const s = rows.find(x => x.id === state.sel) || [...rows].sort((a, b) => b.npd - a.npd)[0];
   if (!s) { $("#cProf").innerHTML = ""; $("#cCum").innerHTML = ""; return; }
   state.sel = s.id;
-  $("#pfTitle").textContent = `${s.n} — 평일 시간대 프로파일 (순유출 ${s.npd >= 0 ? "+" : ""}${s.npd.toFixed(2)}대/일)`;
+  $("#pfTitle").textContent = `${s.n} — 평일 시간대 프로파일 (${flowTxt(s.npd)})`;
   const [rr, bb] = D.profile[s.id] || [Array(24).fill(0), Array(24).fill(0)];
 
   const g = frame($("#cProf"), { l: 42, r: 10, t: 10, b: 24 });
@@ -533,7 +549,7 @@ function drawProfile(rows) {
     const i = Math.round(sx(e.clientX - r.left, g.x0, g.x1, 0, 23));
     if (i < 0 || i > 23) return;
     showTip(e, `<b>${i}시</b><br>대여 ${rr[i].toFixed(2)}대<br>반납 ${bb[i].toFixed(2)}대<br>
-      순유출 ${(rr[i] - bb[i]).toFixed(2)}대`); };
+      ${flowTxt(rr[i] - bb[i], 2, "대")}`); };
   hit.onmouseleave = hideTip; g.svg.appendChild(hit);
 
   const g2 = frame($("#cCum"), { l: 42, r: 10, t: 10, b: 24 });
@@ -567,13 +583,15 @@ function drawKpis(rows) {
   const days = daysInRange();
   const tot = rows.reduce((a, s) => a + s.r, 0);
   const worst = [...rows].sort((a, b) => b.npd - a.npd)[0];
+  const best = [...rows].sort((a, b) => a.npd - b.npd)[0];
   const drain = rows.filter(s => s.npd > 0.3).length;
   const k = [
     ["선택 대여소", fmt(rows.length) + "개", `전체 ${fmt(D.stations.length)}개 중`],
     ["기간 총 대여", fmt(tot) + "건", `${D.months[state.from]} ~ ${D.months[state.to]} · ${days}일`],
     ["일평균 대여", fmt(Math.round(tot / days)) + "건", "관측일 기준"],
     ["하루 0.3대 이상 새는 곳", fmt(drain) + "개", rows.length ? (drain / rows.length * 100).toFixed(1) + "%" : "-"],
-    ["최대 순유출", worst ? "+" + worst.npd.toFixed(2) + "대/일" : "-", worst ? worst.n.slice(0, 16) : ""],
+    ["가장 많이 빠지는 곳", worst ? flowTxt(worst.npd) : "-", worst ? worst.n.slice(0, 16) : ""],
+    ["가장 많이 쌓이는 곳", best ? flowTxt(best.npd) : "-", best ? best.n.slice(0, 16) : ""],
   ];
   $("#kpis").innerHTML = k.map(([a, b, c]) =>
     `<div class="kpi"><div class="k">${a}</div><div class="v">${b}</div><div class="n">${c}</div></div>`).join("");
@@ -589,10 +607,10 @@ function drawTable(rows) {
     aria-selected="${s.id === state.sel}">
     <td>${s.id}</td><td>${s.n}</td><td>${s.g}</td>
     <td>${fmt(s.r)}</td><td>${fmt(s.b)}</td>
-    <td class="${s.no > 0 ? "pos" : "neg"}">${s.no >= 0 ? "+" : ""}${fmt(s.no)}</td>
-    <td class="${s.npd > 0 ? "pos" : "neg"}">${s.npd >= 0 ? "+" : ""}${s.npd.toFixed(2)}</td>
+    <td class="${flow(s.no).c}">${flowInt(s.no)}</td>
+    <td class="${flow(s.npd).c}">${flowTxt(s.npd)}</td>
     <td>${s.cpi ?? "-"}</td><td>${s.wr ?? "-"}</td><td>${s.t}</td>
-    <td>${s.rn >= 0 ? "+" : ""}${fmt(s.rn)}</td></tr>`).join("");
+    <td>${s.rn === 0 ? "0" : (s.rn > 0 ? "유입 " : "유출 ") + fmt(Math.abs(s.rn))}</td></tr>`).join("");
   $("#tbl tbody").querySelectorAll("tr").forEach(tr =>
     tr.onclick = () => { state.sel = tr.dataset.id; render(); });
 }

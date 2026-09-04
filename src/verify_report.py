@@ -54,6 +54,13 @@ chk("유성구 순유출 합계", 11_652, met[met.gu == "유성구"].net_out.sum
 chk("출퇴근형 대여소 수", 144, (met.use_type == "출퇴근형").sum())
 chk("순유출상위30 중 혼합/생활형", 23,
     (met.nlargest(30, "net_out_per_day").use_type == "혼합/생활형").sum())
+# 순유입(순유출 음수) 쪽도 검증한다. 앞서 분모(관측일)가 604→572 로 바뀌었을 때
+# 이 값이 리포트에 옛 수치(2.08)로 남아 있었다. 같은 사고를 막기 위해 고정한다.
+top_in = met.nsmallest(1, "net_out_per_day").iloc[0]
+chk("순유입 1위 일평균", 2.19, -top_in.net_out_per_day, 0.005)
+chk("순유입 1위 누적", 1253, -top_in.net_out)
+chk("순유출 2위 일평균", 2.22, met.nlargest(2, "net_out_per_day").net_out_per_day.iloc[1], 0.005)
+chk("목동 재배치 순유입", 1160, met.loc[met.net_out_per_day.idxmax(), "reloc_net_in"])
 
 print("=" * 76)
 print(f"{'':2} {'항목':<28}{'리포트':>14}{'재계산':>14}")
